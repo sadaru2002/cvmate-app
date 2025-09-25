@@ -1,0 +1,755 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Existing variables */
+  --background: linear-gradient(180deg, #1a0b3d 0%, #0f0519 100%);
+  --foreground: #ffffff;
+  --card: rgba(255, 255, 255, 0.1);
+  --card-foreground: #ffffff;
+  --popover: rgb(255, 255, 255); /* Converted from oklch(1 0 0) */
+  --popover-foreground: rgb(37, 37, 37); /* Converted from oklch(0.145 0 0) */
+  --primary: #4b0082;
+  --primary-foreground: #ffffff;
+  --secondary: #ff007f;
+  --secondary-foreground: #000000;
+  --muted: rgba(255, 255, 255, 0.5);
+  --muted-foreground: #ffffff;
+  --accent: #ff007f;
+  --accent-foreground: #000000;
+  --destructive: #ff4d4d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.2);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: rgba(255, 255, 255, 0.3);
+  --chart-1: #ff007f;
+  --chart-2: #ff8c00;
+  --chart-3: #ffd700;
+  --chart-4: #7fff00;
+  --chart-5: #00ffff;
+  --radius: 0.5rem;
+  --sidebar: rgba(255, 255, 255, 0.1);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #4b0082;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ff007f;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: rgba(255, 255, 255, 0.2);
+  --sidebar-ring: rgba(255, 255, 255, 0.3);
+
+  /* Converted color variables from user's snippet */
+  --color-red-50: rgb(255, 245, 244);
+  --color-red-300: rgb(252, 165, 165);
+  --color-red-400: rgb(248, 113, 113);
+  --color-red-500: rgb(239, 68, 68);
+  --color-red-600: rgb(220, 38, 38);
+  --color-red-700: rgb(185, 28, 28);
+  --color-red-900: rgb(127, 29, 29);
+  --color-orange-50: rgb(255, 248, 242);
+  --color-orange-400: rgb(251, 146, 60);
+  --color-orange-600: rgb(234, 88, 12);
+  --color-amber-50: rgb(255, 251, 242);
+  --color-amber-400: rgb(251, 191, 36);
+  --color-amber-600: rgb(217, 119, 6);
+  --color-green-50: rgb(240, 253, 244);
+  --color-green-400: rgb(74, 222, 128);
+  --color-green-500: rgb(34, 197, 94);
+  --color-green-700: rgb(21, 128, 61);
+  --color-emerald-50: rgb(236, 254, 244);
+  --color-emerald-500: rgb(16, 185, 129);
+  --color-emerald-700: rgb(4, 120, 87);
+  --color-cyan-300: rgb(103, 232, 249);
+  --color-cyan-400: rgb(34, 211, 238);
+  --color-cyan-500: rgb(6, 182, 212);
+  --color-cyan-600: rgb(8, 145, 178);
+  --color-blue-400: rgb(96, 165, 250);
+  --color-blue-600: rgb(37, 99, 235);
+  --color-purple-50: rgb(250, 245, 255);
+  --color-purple-200: rgb(221, 214, 254);
+  --color-purple-300: rgb(196, 181, 253);
+  --color-purple-400: rgb(167, 139, 250);
+  --color-purple-500: rgb(139, 92, 246);
+  --color-purple-600: rgb(124, 58, 237);
+  --color-purple-700: rgb(109, 40, 217);
+  --color-purple-800: rgb(91, 33, 182);
+  --color-pink-400: rgb(244, 114, 182);
+  --color-pink-500: rgb(236, 72, 153);
+  --color-pink-600: rgb(219, 39, 119);
+  --color-gray-200: rgb(229, 231, 235);
+  --color-gray-300: rgb(209, 213, 219);
+  --color-gray-400: rgb(156, 163, 175);
+  --color-gray-500: rgb(107, 114, 128);
+  --color-gray-600: rgb(75, 85, 99);
+  --color-gray-700: rgb(55, 65, 81);
+  --color-gray-800: rgb(31, 41, 55);
+  --color-gray-900: rgb(17, 24, 39);
+  --color-black: #000;
+  --color-white: #fff;
+  --spacing: 0.25rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-2xl: 42rem;
+  --container-4xl: 56rem;
+  --container-6xl: 72rem;
+  --container-7xl: 80rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(1 / 0.75);
+  --text-sm: 0.875rem;
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-base: 1rem;
+  --text-base--line-height: calc(1.5 / 1);
+  --text-lg: 1.125rem;
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: 1.25rem;
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: calc(2.25 / 1.875);
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: calc(2.5 / 2.25);
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 3.75rem;
+  --text-6xl--line-height: 1;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --tracking-tight: -0.025em;
+  --tracking-widest: 0.1em;
+  --leading-tight: 1.25;
+  --leading-relaxed: 1.625;
+  --radius-xs: 0.125rem;
+  --radius-2xl: 1rem;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-spin: spin 1s linear infinite;
+  --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-xl: 24px;
+  --aspect-video: 16 / 9;
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  --default-font-family: var(--font-geist-sans);
+  --default-mono-font-family: var(--font-geist-mono);
+  --color-border: var(--border);
+}
+
+.dark {
+  --background: linear-gradient(180deg, #1a0b3d 0%, #0f0519 100%);
+  --foreground: #ffffff;
+  --card: rgba(255, 255, 255, 0.1);
+  --card-foreground: #ffffff;
+  --popover: rgb(37, 37, 37); /* Converted from oklch(0.145 0 0) */
+  --popover-foreground: rgb(251, 251, 251); /* Converted from oklch(0.985 0 0) */
+  --primary: #4b0082;
+  --primary-foreground: #ffffff;
+  --secondary: #ff007f;
+  --secondary-foreground: #000000;
+  --muted: rgba(255, 255, 255, 0.5);
+  --muted-foreground: #ffffff;
+  --accent: #ff007f;
+  --accent-foreground: #000000;
+  --destructive: #ff4d4d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.2);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: rgba(255, 255, 255, 0.3);
+  --chart-1: #ff007f;
+  --chart-2: #ff8c00;
+  --chart-3: #ffd700;
+  --chart-4: #7fff00;
+  --chart-5: #00ffff;
+  --sidebar: rgba(255, 255, 255, 0.1);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #4b0082;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ff007f;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: rgba(255, 255, 255, 0.2);
+  --sidebar-ring: rgba(255, 255, 255, 0.3);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply text-foreground;
+    /* Made background darker by using deeper, more saturated dark colors */
+    background: linear-gradient(135deg, #0d051f 0%, #1a0b3d 25%, #2d1b69 50%, #4b0082 75%, #0a0312 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+}
+
+/* Added futuristic animations and effects */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes subtle-rainbow-border {
+  0% {
+    border-color: rgba(255, 0, 128, 0.3);
+    box-shadow: 0 0 15px rgba(255, 0, 128, 0.1);
+  }
+  16.66% {
+    border-color: rgba(255, 128, 0, 0.3);
+    box-shadow: 0 0 15px rgba(255, 128, 0, 0.1);
+  }
+  33.33% {
+    border-color: rgba(255, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.1);
+  }
+  50% {
+    border-color: rgba(128, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(128, 255, 0, 0.1);
+  }
+  66.66% {
+    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+  }
+  83.33% {
+    border-color: rgba(128, 0, 255, 0.3);
+    box-shadow: 0 0 15px rgba(128, 0, 255, 0.1);
+  }
+  100% {
+    border-color: rgba(255, 0, 128, 0.3);
+    box-shadow: 0 0 15px rgba(255, 0, 128, 0.1);
+  }
+}
+
+@keyframes gentle-particle-float {
+  0% {
+    transform: translateY(100vh) translateX(-50px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100px) translateX(50px);
+    opacity: 0;
+  }
+}
+
+/* 3D Carousel Styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-gpu {
+  transform-style: preserve-3d;
+}
+
+.rotate-y-0 {
+  transform: rotateY(0deg);
+}
+
+.rotate-y-25 {
+  transform: rotateY(25deg);
+}
+
+.-rotate-y-25 {
+  transform: rotateY(-25deg);
+}
+
+.rotate-y-45 {
+  transform: rotateY(45deg);
+}
+
+.scale-102 {
+  transform: scale(1.02);
+}
+
+/* CV 3D Card Effects */
+.cv-3d-card {
+  transform-style: preserve-3d;
+  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-3d-card:hover {
+  transform: translateY(-10px) scale(1.05) rotateX(5deg);
+}
+
+/* Rainbow border for 3D cards */
+.rainbow-border-3d {
+  background: linear-gradient(
+    45deg,
+    rgba(255, 0, 128, 0.3) 0%,
+    rgba(255, 128, 0, 0.3) 16.66%,
+    rgba(255, 255, 0, 0.3) 33.33%,
+    rgba(128, 255, 0, 0.3) 50%,
+    rgba(0, 255, 255, 0.3) 66.66%,
+    rgba(128, 0, 255, 0.3) 83.33%,
+    rgba(255, 0, 128, 0.3) 100%
+  );
+  background-size: 400% 400%;
+  border-radius: inherit;
+  padding: 2px;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  animation: rainbow-flow 3s ease-in-out infinite;
+}
+
+@keyframes rainbow-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Smooth carousel transitions */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%) scale(0.8) rotateY(45deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%) scale(0.8) rotateY(-45deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%) scale(0.8) rotateX(45deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1) rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0) scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%) scale(0.8) rotateY(-45deg);
+    opacity: 0;
+  }
+}
+
+/* Responsive 3D effects */
+@media (max-width: 768px) {
+  .cv-3d-card:hover {
+    transform: translateY(-5px) scale(1.02) rotateX(2deg);
+  }
+
+  .perspective-1000 {
+    perspective: 800px;
+  }
+}
+
+/* Enhanced glass morphism for carousel */
+.carousel-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.carousel-glass:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 0 20px rgba(0, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.glass-panel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15), 0 0 20px rgba(0, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Enhanced high contrast glass panel for better readability */
+.glass-panel-high-contrast {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.glass-panel-high-contrast:hover {
+  background: rgba(0, 0, 0, 0.45);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Removed old rainbow-border styles */
+.rainbow-border {
+  /* These styles are no longer needed and will be removed */
+}
+
+.rainbow-border::before {
+  /* These styles are no longer needed and will be removed */
+}
+
+/* New gradient glow button styles */
+.gradient-glow-button {
+  background-image: linear-gradient(144deg, #af40ff, #5b42f3 50%, #00ddeb);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: rgba(151, 65, 252, 0.2) 0 15px 30px -5px;
+  box-sizing: border-box;
+  color: #ffffff; /* Ensure text is white */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3px; /* This creates the gradient border effect */
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.gradient-glow-button:active {
+  transform: scale(0.9);
+}
+
+.gradient-glow-button > span {
+  background-color: rgb(5, 6, 45); /* Dark background for the inner part */
+  border-radius: 6px; /* Slightly smaller radius than outer button */
+  width: 100%;
+  height: 100%;
+  transition: 300ms;
+  display: flex; /* To center content inside span */
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* Tailwind default gap-2 */
+}
+
+.gradient-glow-button:hover > span {
+  background: none; /* Reveals the gradient background of the button */
+}
+
+/* New destructive gradient glow button styles */
+.gradient-glow-destructive-button {
+  background-image: linear-gradient(144deg, var(--destructive), var(--secondary) 50%, #8b0000); /* Red to pink gradient */
+  border: 0;
+  border-radius: 8px;
+  box-shadow: rgba(255, 77, 77, 0.2) 0 15px 30px -5px; /* Red-themed shadow */
+  box-sizing: border-box;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3px;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.gradient-glow-destructive-button:active {
+  transform: scale(0.9);
+}
+
+.gradient-glow-destructive-button:hover {
+  box-shadow: 
+    0 0 0 2px var(--color-white), /* A solid 2px white border-like glow */
+    rgba(255, 77, 77, 0.4) 0 15px 30px -5px; /* Enhanced existing shadow */
+}
+
+.gradient-glow-destructive-button > span {
+  background-color: rgb(5, 6, 45); /* Dark background for the inner part */
+  border-radius: 6px;
+  width: 100%;
+  height: 100%;
+  transition: 300ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.gradient-glow-destructive-button:hover > span {
+  background: none;
+}
+
+
+/* More subtle particle effects */
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: radial-gradient(circle, rgba(0, 255, 255, 0.8), rgba(128, 0, 255, 0.4));
+  border-radius: 50%;
+  animation: gentle-particle-float linear infinite;
+  pointer-events: none;
+  filter: blur(0.5px);
+}
+
+.floating-element {
+  animation: float 8s ease-in-out infinite;
+}
+
+/* Refined glow text with subtle effect */
+.glow-text {
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.3), 0 0 16px rgba(128, 0, 255, 0.2);
+}
+
+/* Section dividers with subtle gradients */
+.section-divider {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  height: 1px;
+  margin: 4rem 0;
+}
+
+/* Refined neon accents */
+.neon-accent {
+  color: #00ffff;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.neon-accent-purple {
+  color: #8a2be2;
+  text-shadow: 0 0 5px rgba(138, 43, 226, 0.5);
+}
+
+/* Modern CV Carousel Styles */
+.modern-carousel-container {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.modern-cv-card {
+  transform-style: preserve-3d;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  backface-visibility: hidden;
+}
+
+.modern-cv-card:hover {
+  transform: translateY(-8px) scale(1.05) rotateX(5deg) rotateY(2deg);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced shadow effects for 3D depth */
+.shadow-3xl {
+  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25), 0 0 40px rgba(255, 255, 255, 0.05);
+}
+
+/* Smooth carousel slide transitions */
+.carousel-slide-enter {
+  animation: slideInFromRight 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0) scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%) scale(0.8) rotateY(-45deg);
+    opacity: 0;
+  }
+}
+
+/* Enhanced gradient backgrounds for carousel cards */
+.gradient-orange {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+}
+
+.gradient-amber {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.gradient-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Removed 3D Flip Card Styles */
+/*
+.flip-card-container {
+  width: 280px;
+  height: 350px;
+  perspective: 1000px;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flip-card-container:hover .flip-card {
+  transform: rotateY(180deg) scale(1.05);
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.flip-card-container:hover .flip-card-front,
+.flip-card-container:hover .flip-card-back {
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 255, 0.2);
+  border-color: rgba(0, 255, 255, 0.4);
+}
+
+
+.flip-card-front::before,
+.flip-card-back::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 0, 128, 0.3),
+    rgba(255, 128, 0, 0.3),
+    rgba(255, 255, 0, 0.3),
+    rgba(128, 255, 0, 0.3),
+    rgba(0, 255, 255, 0.3),
+    rgba(128, 0, 255, 0.3)
+  );
+  background-size: 400% 400%;
+  border-radius: 14px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: rainbow-flow 3s ease-in-out infinite;
+}
+
+.flip-card-container:hover .flip-card-front::before,
+.flip-card-container:hover .flip-card-back::before {
+  opacity: 1;
+}
+
+
+@media (max-width: 768px) {
+  .flip-card-container {
+    width: 240px;
+    height: 300px;
+  }
+
+  .flip-card-container:hover .flip-card {
+    transform: rotateY(180deg) scale(1.02);
+  }
+}
+*/
+
+/* New dialog rainbow border */
+.dialog-rainbow-border {
+  /* Removed problematic CSS that caused content to be transparent */
+  /* The glass-panel-high-contrast class will now handle the background and border */
+}
