@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Github, ExternalLink } from "lucide-react"; // Changed from react-icons/lu to lucide-react
-import ActionLink from "./ActionLink";
+import ActionLink from "./ActionLink.tsx";
 
 interface ProjectInfoProps {
     title?: string;
