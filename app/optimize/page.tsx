@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Brain, Copy, Check, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { AuthGuard } from "@/components/AuthGuard"; // Import AuthGuard
 import { GlassCard } from "@/components/glass-card"; // Import GlassCard
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 
-export default function OptimizePage() {
+function OptimizePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeId = searchParams.get("id");
@@ -307,5 +307,13 @@ export default function OptimizePage() {
         </main>
       </div>
     </AuthGuard>
+  );
+}
+
+export default function OptimizePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OptimizePageContent />
+    </Suspense>
   );
 }
