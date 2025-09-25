@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 // Function to find Microsoft Edge executable
 function findEdge() {
@@ -44,32 +45,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing html or css' }, { status: 400 });
     }
 
-    // Find browser executable
-    const browserPath = findEdge();
-    console.log('Using browser path:', browserPath || 'default puppeteer browser');
+    // Configure launch options for serverless or local environment
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    let launchOptions;
 
-    // Configure launch options
-    const launchOptions = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--no-first-run',
-        '--disable-default-apps',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection'
-      ],
-      ...(browserPath && { executablePath: browserPath })
-    };
+    if (isDevelopment) {
+      // Development: Try to find local browser
+      const browserPath = findEdge();
+      console.log('Development mode - Using browser path:', browserPath || 'default browser');
+      
+      launchOptions = {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-extensions',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--no-first-run',
+          '--disable-default-apps',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection'
+        ],
+        ...(browserPath && { executablePath: browserPath })
+      };
+    } else {
+      // Production: Use serverless chromium
+      console.log('Production mode - Using serverless chromium');
+      launchOptions = {
+        args: chromium.args,
+        defaultViewport: { width: 1920, height: 1080 },
+        executablePath: await chromium.executablePath(),
+        headless: 'new' as const,
+      };
+    }
 
     console.log('Launching browser with options:', { 
-      hasCustomPath: !!browserPath,
+      isDevelopment,
       headless: true 
     });
 
