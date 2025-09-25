@@ -17,7 +17,7 @@ import {
 // Import section components
 import EducationInfo from "./resumesection/Educationinfo";
 import WorkExperience from "./resumesection/Workexperience";
-import ProjectInfo from "./resumesection/projectinfo";
+import ProjectInfo from "./resumesection/projectinfo.tsx";
 import CertificationInfo from "./resumesection/CertificationInfo";
 import BulletList from "./resumesection/BulletList"; // New bullet list component
 import { cleanUrlForDisplay } from "@/lib/utils";

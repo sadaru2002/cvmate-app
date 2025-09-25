@@ -14,7 +14,7 @@ import {
 // Import section components
 import EducationInfo from "./resumesection/Educationinfo";
 import WorkExperience from "./resumesection/Workexperience";
-import ProjectInfo from "./resumesection/projectinfo";
+import ProjectInfo from "./resumesection/projectinfo.tsx";
 import SkillSection from "./resumesection/SkillSection";
 import CertificationInfo from "./resumesection/CertificationInfo";
 import LanguageSection from "./resumesection/Languagesection";
