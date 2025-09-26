@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { launchChromium } from 'playwright-aws-lambda';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export async function POST(req: NextRequest) {
   // Set a timeout for the entire PDF generation process
@@ -110,83 +111,30 @@ async function generatePDF(req: NextRequest) {
         try {
           console.log(`Launching browser (attempt ${attempt}/${maxRetries})...`);
           
-          // Try different launch strategies based on attempt
-          let launchOptions;
+          // Configure for serverless environment
+          const launchOptions = {
+            args: isServerless ? [
+              ...chromium.args,
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--single-process',
+              '--no-zygote',
+              '--disable-web-security',
+            ] : [
+              '--no-sandbox',
+              '--disable-setuid-sandbox'
+            ],
+            defaultViewport: { width: 1200, height: 1600 },
+            executablePath: isServerless 
+              ? await chromium.executablePath() 
+              : undefined, // Let puppeteer find Chrome locally
+            headless: true,
+            ignoreHTTPSErrors: true,
+          };
           
-          if (attempt === 1) {
-            // First attempt: Standard configuration
-            launchOptions = {
-              headless: true,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process',
-                '--no-zygote',
-                '--disable-web-security',
-              ],
-              timeout: 30000,
-            };
-          } else if (attempt === 2) {
-            // Second attempt: More aggressive flags
-            launchOptions = {
-              headless: true,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-extensions',
-                '--single-process',
-                '--no-zygote',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding',
-              ],
-              timeout: 45000,
-            };
-          } else {
-            // Final attempts: Maximum compatibility flags
-            launchOptions = {
-              headless: true,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-extensions',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding',
-                '--disable-features=TranslateUI',
-                '--disable-ipc-flooding-protection',
-                '--single-process',
-                '--no-zygote',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-                '--disable-software-rasterizer',
-                '--disable-background-networking',
-                '--disable-default-apps',
-                '--disable-sync',
-                '--metrics-recording-only',
-                '--no-first-run',
-                '--safebrowsing-disable-auto-update',
-                '--disable-hang-monitor',
-                '--disable-prompt-on-repost',
-                '--disable-domain-reliability',
-                '--disable-component-update',
-                '--use-mock-keychain',
-                '--memory-pressure-off',
-                '--max_old_space_size=4096',
-              ],
-              timeout: 60000,
-            };
-          }
-          
-          browser = await launchChromium(launchOptions);
+          browser = await puppeteer.launch(launchOptions);
           
           console.log('Browser launched successfully');
           break; // Success, exit retry loop

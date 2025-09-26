@@ -14,10 +14,7 @@ const nextConfig = {
       // External dependencies for server-side
       config.externals = [
         ...config.externals,
-        // Allow puppeteer and chrome-aws-lambda to be bundled
-        // 'puppeteer-core', // Commented out to allow bundling
-        // 'chrome-aws-lambda', // Commented out to allow bundling
-        // Other optional dependencies
+        // External dependencies for serverless compatibility
         'playwright-core',
         'chromium-bidi',
         'electron',
@@ -32,16 +29,10 @@ const nextConfig = {
       ];
     }
     
-    // Ignore source map files and binary files
+    // Handle binary files and source maps
     config.module.rules.push({
       test: /\.(ttf|woff|woff2|js\.map)$/,
       type: 'asset/resource',
-    });
-    
-    // Ignore chrome-aws-lambda source maps specifically
-    config.module.rules.push({
-      test: /chrome-aws-lambda.*\.js\.map$/,
-      use: 'ignore-loader',
     });
     
     return config;
