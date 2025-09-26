@@ -1,52 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
+import path from 'path';
+import fs from 'fs/promises';
 
 export const maxDuration = 60;
 
-// Register fonts at module level (runs once when module loads)
-let fontsRegistered = false;
-let fontRegistrationSuccess = false;
-
-const registerFonts = () => {
-  if (fontsRegistered) return fontRegistrationSuccess;
-  
+// Function to load font file and return as a base64 data URL
+const loadFontAsDataUrl = async (fontPath: string) => {
   try {
-    Font.register({
-      family: 'Roboto',
-      fonts: [
-        {
-          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
-          fontWeight: 'normal',
-        },
-        {
-          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
-          fontWeight: 'bold',
-        },
-      ],
-    });
-    
-    console.log('Roboto font registered successfully');
-    fontRegistrationSuccess = true;
+    const absolutePath = path.join(process.cwd(), 'public', 'fonts', fontPath);
+    const fontBuffer = await fs.readFile(absolutePath);
+    return `data:font/ttf;base64,${fontBuffer.toString('base64')}`;
   } catch (error) {
-    console.error('Failed to register Roboto font:', error);
-    fontRegistrationSuccess = false;
+    console.error(`Failed to load font as Data URL: ${fontPath}`, error);
+    throw new Error(`Failed to load font as Data URL: ${fontPath}`);
   }
-  
-  fontsRegistered = true;
-  return fontRegistrationSuccess;
 };
 
-// Register fonts immediately when module loads
-registerFonts();
+// Register Roboto font using local TTF files loaded as base64 data URLs
+let fontsReady = false;
+(async () => {
+  try {
+    const robotoRegularDataUrl = await loadFontAsDataUrl('Roboto-Regular.ttf');
+    const robotoBoldDataUrl = await loadFontAsDataUrl('Roboto-Bold.ttf');
 
-// Rest of your code remains the same...
+    if (robotoRegularDataUrl && robotoBoldDataUrl) {
+      Font.register({
+        family: "Roboto",
+        fonts: [
+          { src: robotoRegularDataUrl, fontWeight: "normal" },
+          { src: robotoBoldDataUrl, fontWeight: "bold" },
+        ],
+      });
+      console.log('Fonts registered successfully with local TTF Data URLs.');
+      fontsReady = true;
+    }
+  } catch (error) {
+    console.error('Error during initial font loading and registration:', error);
+    // Fallback to default fonts if custom font loading fails
+    Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
+    fontsReady = false;
+  }
+})();
+
+
+// Styles are now created dynamically based on font availability
 const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: useSystemFonts ? "Helvetica" : "Roboto",
+    fontFamily: useSystemFonts ? "Helvetica" : "Roboto", // Conditional font family
     fontSize: 11,
     color: "#333333",
   },
@@ -89,9 +94,10 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
 });
 
 const createPDFDocument = (data: any, useSystemFonts: boolean) => {
+  console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
   console.log('createPDFDocument: Using system fonts:', useSystemFonts);
 
-  const styles = createStyles(useSystemFonts);
+  const styles = createStyles(useSystemFonts); // Create styles dynamically
 
   const personalInfo = data?.personalInfo || {};
   const professionalSummary = data?.professionalSummary;
@@ -107,7 +113,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
         {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.name}>{personalInfo.fullName || "Your Name"}</Text>
-          <Text style={styles.text}>{personalInfo.designation || "Professional Title"}</Text>
+          <Text style={styles.text}>{personalInfo.designation || "Professional Title"}</Text> {/* Corrected to use designation */}
           <Text style={styles.text}>Email: {personalInfo.email || "email@example.com"}</Text>
           <Text style={styles.text}>Phone: {personalInfo.phone || "+1 234-567-8900"}</Text>
           {personalInfo.location && <Text style={styles.text}>Location: {personalInfo.location}</Text>}
@@ -207,8 +213,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if fonts were registered successfully
-    console.log(`Fonts loaded successfully: ${fontRegistrationSuccess}`);
+    // The fontsReady flag is set asynchronously at module load.
+    // We use its current state to decide if system fonts are needed.
+    console.log(`Fonts loaded successfully: ${fontsReady}`);
 
     // Ensure all necessary data is present for the PDF component
     const fullResumeData = {
@@ -224,7 +231,7 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('API: Calling createPDFDocument with processed data.');
-    const pdfDocument = createPDFDocument(fullResumeData, !fontRegistrationSuccess);
+    const pdfDocument = createPDFDocument(fullResumeData, !fontsReady); // Pass useSystemFonts flag
     console.log('API: PDF Document created. Attempting to buffer...');
     const pdfInstance = pdf(pdfDocument);
     const pdfBuffer = await pdfInstance.toBuffer();
@@ -244,14 +251,10 @@ export async function POST(req: NextRequest) {
     console.error("API: Error details:", error?.message);
     console.error("API: Error stack:", error?.stack);
     
-    // Final fallback: try with system fonts only
-    try {
-      console.log('API: Attempting fallback with system fonts only...');
-      const { resumeData, filename = "resume" } = await req.json();
-      
-      const fullResumeData = {
-        personalInfo: resumeData.profileInfo,
-        professionalSummary: resumeData.profileInfo?.summary,
-        workExperiences: resumeData.workExperiences,
-        education: resumeData.education,
-        skills: { technical: resumeData.skills?.map((s: any) => s.name) },
+    return NextResponse.json({
+      success: false,
+      error: "Failed to generate PDF",
+      details: error?.message || "Unknown error"
+    }, { status: 500 });
+  }
+}
