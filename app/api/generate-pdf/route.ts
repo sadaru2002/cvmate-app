@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { launchChromium } from 'playwright-aws-lambda';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,14 +12,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Read the globals.css file for full styling consistency
-    let cssContent = '';
-    try {
-      const cssPath = path.join(process.cwd(), 'app', 'globals.css');
-      cssContent = await fs.readFile(cssPath, 'utf-8');
-    } catch (error) {
-      console.warn('Could not read globals.css:', error);
-    }
+    // Use embedded critical CSS instead of filesystem reading for serverless compatibility
+    const criticalCss = `
+      @tailwind base;
+      @tailwind components;
+      @tailwind utilities;
+      
+      /* Critical styles for PDF generation */
+      * {
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+          "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      @media print {
+        body { 
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        * { 
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+      }
+    `;
 
     // Create complete HTML with Tailwind CDN and local styles
     const fullHtml = `
@@ -34,14 +55,8 @@ export async function POST(req: NextRequest) {
   <!-- Tailwind CSS CDN for consistency -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Local styles from globals.css */
-    ${cssContent}
-    
-    /* Additional print optimizations */
-    @media print {
-      body { -webkit-print-color-adjust: exact; }
-      * { print-color-adjust: exact; }
-    }
+    /* Critical CSS for PDF generation */
+    ${criticalCss}
   </style>
 </head>
 <body>
