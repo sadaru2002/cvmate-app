@@ -2,23 +2,51 @@ import { NextRequest, NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
 import path from 'path'; // Import the path module
+import fs from 'fs/promises'; // Import fs.promises for reading files
 
 export const maxDuration = 60;
 
-// Register Roboto font using local TTF files for better compatibility
-Font.register({
-  family: "Roboto",
-  fonts: [
-    {
-      src: path.join(process.cwd(), 'public', 'fonts', 'Roboto-Regular.ttf'), // Use absolute path
-      fontWeight: "normal",
-    },
-    {
-      src: path.join(process.cwd(), 'public', 'fonts', 'Roboto-Bold.ttf'), // Use absolute path
-      fontWeight: "bold",
-    },
-  ],
-});
+// Load font files into buffers
+const loadFont = async (fontPath: string) => {
+  try {
+    const absolutePath = path.join(process.cwd(), 'public', 'fonts', fontPath);
+    const fontBuffer = await fs.readFile(absolutePath);
+    return fontBuffer;
+  } catch (error) {
+    console.error(`Failed to load font: ${fontPath}`, error);
+    throw new Error(`Failed to load font: ${fontPath}`);
+  }
+};
+
+// Register Roboto font using local TTF files loaded as buffers
+// This needs to be done outside the POST handler to ensure it's registered once
+// and the async loading is handled.
+let robotoRegularBuffer: Buffer | null = null;
+let robotoBoldBuffer: Buffer | null = null;
+
+// Use a self-invoking async function to load fonts on module initialization
+(async () => {
+  try {
+    robotoRegularBuffer = await loadFont('Roboto-Regular.ttf');
+    robotoBoldBuffer = await loadFont('Roboto-Bold.ttf');
+
+    if (robotoRegularBuffer) {
+      Font.register({
+        family: "Roboto",
+        fonts: [
+          { data: robotoRegularBuffer, fontWeight: "normal" },
+          { data: robotoBoldBuffer!, fontWeight: "bold" }, // Assert non-null as it's loaded above
+        ],
+      });
+      console.log('Fonts registered successfully with buffers.');
+    }
+  } catch (error) {
+    console.error('Error during initial font loading and registration:', error);
+    // Fallback to default fonts if custom font loading fails
+    Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
+  }
+})();
+
 
 const styles = StyleSheet.create({
   page: {
