@@ -1,58 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
-import path from 'path'; // Import the path module
-import fs from 'fs/promises'; // Import fs.promises for reading files
 
 export const maxDuration = 60;
 
-// Function to load font file and return as a base64 data URL
-const loadFontAsDataUrl = async (fontPath: string) => {
-  try {
-    const absolutePath = path.join(process.cwd(), 'public', 'fonts', fontPath);
-    const fontBuffer = await fs.readFile(absolutePath);
-    return `data:font/ttf;base64,${fontBuffer.toString('base64')}`;
-  } catch (error) {
-    console.error(`Failed to load font as Data URL: ${fontPath}`, error);
-    throw new Error(`Failed to load font as Data URL: ${fontPath}`);
-  }
+// Font registration with multiple fallbacks
+const initializeFonts = async () => {
+  const fontConfigs = [
+    {
+      family: 'Roboto',
+      fonts: [
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
+          fontWeight: 'normal',
+        },
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
+          fontWeight: 'bold',
+        },
+      ],
+    },
+  ];
+
+  const registrationPromises = fontConfigs.map(async (config) => {
+    try {
+      Font.register(config);
+      return { family: config.family, success: true };
+    } catch (error) {
+      console.error(`Failed to register ${config.family}:`, error);
+      return { family: config.family, success: false };
+    }
+  });
+
+  const results = await Promise.all(registrationPromises);
+  return results.every(result => result.success);
 };
 
-// Register Roboto font using local TTF files loaded as base64 data URLs
-// This needs to be done once at module initialization.
-let robotoRegularDataUrl: string | null = null;
-let robotoBoldDataUrl: string | null = null;
-
-// Use a self-invoking async function to load fonts on module initialization
-(async () => {
-  try {
-    robotoRegularDataUrl = await loadFontAsDataUrl('Roboto-Regular.ttf');
-    robotoBoldDataUrl = await loadFontAsDataUrl('Roboto-Bold.ttf');
-
-    if (robotoRegularDataUrl && robotoBoldDataUrl) {
-      Font.register({
-        family: "Roboto",
-        fonts: [
-          { src: robotoRegularDataUrl, fontWeight: "normal" },
-          { src: robotoBoldDataUrl, fontWeight: "bold" },
-        ],
-      });
-      console.log('Fonts registered successfully with Data URLs.');
-    }
-  } catch (error) {
-    console.error('Error during initial font loading and registration:', error);
-    // Fallback to default fonts if custom font loading fails
-    Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
-  }
-})();
-
-
-const styles = StyleSheet.create({
+// Styles are now created dynamically based on font availability
+const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: "Roboto", // Changed to Roboto
+    fontFamily: useSystemFonts ? "Helvetica" : "Roboto", // Conditional font family
     fontSize: 11,
     color: "#333333",
   },
@@ -94,12 +84,15 @@ const styles = StyleSheet.create({
   },
 });
 
-const createPDFDocument = (data: any) => {
+const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
+  console.log('createPDFDocument: Using system fonts:', useSystemFonts);
+
+  const styles = createStyles(useSystemFonts); // Create styles dynamically
 
   const personalInfo = data?.personalInfo || {};
   const professionalSummary = data?.professionalSummary;
-  const workExperience = data?.workExperiences || [];
+  const workExperience = data?.workExperiences || []; // Corrected key
   const education = data?.education || [];
   const skills = data?.skills?.technical || [];
   const projects = data?.projects || [];
@@ -135,11 +128,6 @@ const createPDFDocument = (data: any) => {
                   {`${job.role} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`}
                 </Text>
                 {job.description && <Text style={styles.text}>{job.description}</Text>}
-                {/* Responsibilities are not directly in the current resumeData structure for PDF,
-                    but if description is bulleted, it will appear as a single block.
-                    If you need explicit bullet points, the resumeData structure or this PDF component
-                    would need to be updated to parse description into an array of responsibilities.
-                */}
               </View>
             ))}
           </View>
@@ -154,7 +142,6 @@ const createPDFDocument = (data: any) => {
                 <Text style={styles.text}>
                   {`${edu.degree} - ${edu.institution} (${edu.startDate} - ${edu.endDate})`}
                 </Text>
-                {/* GPA is not in the current resumeData structure for PDF */}
               </View>
             ))}
           </View>
@@ -192,7 +179,6 @@ const createPDFDocument = (data: any) => {
                 <Text style={styles.text}>
                   {`${cert.title} by ${cert.issuer} (${cert.year})`}
                 </Text>
-                {/* URL is not in the current resumeData structure for PDF */}
               </View>
             ))}
           </View>
@@ -218,11 +204,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Initialize fonts
+    const fontsReady = await initializeFonts();
+    console.log(`Fonts loaded successfully: ${fontsReady}`);
+
     // Ensure all necessary data is present for the PDF component
     const fullResumeData = {
       personalInfo: resumeData.profileInfo,
       professionalSummary: resumeData.profileInfo?.summary,
-      workExperiences: resumeData.workExperiences, // Corrected key
+      workExperiences: resumeData.workExperiences,
       education: resumeData.education,
       skills: { technical: resumeData.skills?.map((s: any) => s.name) }, // Map skills to simple array
       projects: resumeData.projects,
@@ -232,7 +222,7 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('API: Calling createPDFDocument with processed data.');
-    const pdfDocument = createPDFDocument(fullResumeData);
+    const pdfDocument = createPDFDocument(fullResumeData, !fontsReady); // Pass useSystemFonts flag
     console.log('API: PDF Document created. Attempting to buffer...');
     const pdfInstance = pdf(pdfDocument);
     const pdfBuffer = await pdfInstance.toBuffer();
@@ -251,6 +241,11 @@ export async function POST(req: NextRequest) {
     console.error("API: React PDF generation error caught in POST handler:", error);
     console.error("API: Error details:", error?.message);
     console.error("API: Error stack:", error?.stack);
+    
+    // Fallback: try with system fonts only if the initial attempt failed due to font issues
+    // This part of the fallback is already handled by the `!fontsReady` flag passed to `createPDFDocument`
+    // and the dynamic `createStyles` function. If the error is not font-related,
+    // re-attempting with system fonts won't fix it.
     return NextResponse.json({
       success: false,
       error: "Failed to generate PDF",
