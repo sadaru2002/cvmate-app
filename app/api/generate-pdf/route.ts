@@ -69,31 +69,62 @@ export async function POST(req: NextRequest) {
     let page;
     
     try {
-      console.log('Launching browser...');
-      browser = await launchChromium({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--disable-extensions',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-        ]
-      });
+      const maxRetries = 3;
+      let lastError;
+
+      // Try to launch browser with retries
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Launching browser (attempt ${attempt}/${maxRetries})...`);
+          
+          browser = await launchChromium({
+            headless: true,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--disable-extensions',
+              '--disable-background-timer-throttling',
+              '--disable-backgrounding-occluded-windows',
+              '--disable-renderer-backgrounding',
+              '--disable-features=TranslateUI',
+              '--disable-ipc-flooding-protection',
+              '--single-process',
+              '--no-zygote',
+              '--disable-web-security',
+              '--disable-features=VizDisplayCompositor',
+            ],
+          });
+          
+          console.log('Browser launched successfully');
+          break; // Success, exit retry loop
+          
+        } catch (error) {
+          lastError = error;
+          console.error(`Browser launch attempt ${attempt} failed:`, error.message);
+          
+          if (attempt < maxRetries) {
+            console.log(`Retrying in 1 second...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      if (!browser) {
+        throw lastError || new Error('Failed to launch browser after all retries');
+      }
 
       console.log('Creating new page...');
       page = await browser.newPage();
       
       // Set viewport for consistent rendering
-      await page.setViewportSize({ width: 1200, height: 1600 });
+      await page.setViewport({ width: 1200, height: 1600 });
       
       console.log('Setting page content...');
       // Set content with complete HTML
       await page.setContent(fullHtml, { 
-        waitUntil: 'networkidle',
+        waitUntil: 'networkidle0',
         timeout: 30000 
       });
 
@@ -102,7 +133,6 @@ export async function POST(req: NextRequest) {
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
-        preferCSSPageSize: false,
         margin: {
           top: '0.5in',
           right: '0.5in',

@@ -11,11 +11,13 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // External dependencies for server-side (but not playwright-aws-lambda)
+      // External dependencies for server-side
       config.externals = [
         ...config.externals,
-        // Remove playwright-aws-lambda from externals to allow proper bundling
-        // 'playwright-aws-lambda', // Commented out
+        // Allow puppeteer and chrome-aws-lambda to be bundled
+        // 'puppeteer-core', // Commented out to allow bundling
+        // 'chrome-aws-lambda', // Commented out to allow bundling
+        // Other optional dependencies
         'playwright-core',
         'chromium-bidi',
         'electron',
@@ -29,11 +31,19 @@ const nextConfig = {
         'bson-ext',
       ];
     }
-    // Ignore binary files
+    
+    // Ignore source map files and binary files
     config.module.rules.push({
-      test: /\.(ttf|woff|woff2)$/,
+      test: /\.(ttf|woff|woff2|js\.map)$/,
       type: 'asset/resource',
     });
+    
+    // Ignore chrome-aws-lambda source maps specifically
+    config.module.rules.push({
+      test: /chrome-aws-lambda.*\.js\.map$/,
+      use: 'ignore-loader',
+    });
+    
     return config;
   },
 }

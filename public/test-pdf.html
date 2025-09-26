@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Generation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8">
+    <h1 class="text-2xl font-bold mb-4">Test PDF Generation</h1>
+    
+    <div id="resume-template" class="max-w-4xl mx-auto bg-white p-8 shadow-lg">
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">John Doe</h2>
+            <p class="text-lg text-gray-600">Software Engineer</p>
+            <div class="mt-2">
+                <p class="text-sm text-gray-500">Email: john.doe@example.com | Phone: (555) 123-4567</p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-blue-500 pb-1">Experience</h3>
+            <div class="mb-4">
+                <h4 class="text-lg font-medium text-gray-700">Senior Software Engineer</h4>
+                <p class="text-sm text-gray-600 mb-2">Tech Company Inc. | 2020 - Present</p>
+                <ul class="text-sm text-gray-600 list-disc ml-5">
+                    <li>Developed and maintained web applications using React and Node.js</li>
+                    <li>Led a team of 5 developers in agile development processes</li>
+                    <li>Improved application performance by 40% through optimization</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-3 border-b-2 border-green-500 pb-1">Skills</h3>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">JavaScript</span>
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">React</span>
+                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">Node.js</span>
+                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">Python</span>
+                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">MongoDB</span>
+            </div>
+        </div>
+    </div>
+
+    <button id="download-pdf" class="mt-8 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Download PDF
+    </button>
+
+    <script>
+        document.getElementById('download-pdf').addEventListener('click', async () => {
+            const button = document.getElementById('download-pdf');
+            const originalText = button.textContent;
+            button.textContent = 'Generating PDF...';
+            button.disabled = true;
+
+            try {
+                // Get the HTML content from the resume template
+                const resumeElement = document.getElementById('resume-template');
+                const html = resumeElement.outerHTML;
+
+                console.log('Extracted HTML:', html.substring(0, 200) + '...');
+
+                const response = await fetch('/api/generate-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ html })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'test-resume.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    console.log('PDF downloaded successfully');
+                } else {
+                    const errorData = await response.json();
+                    console.error('PDF generation failed:', errorData);
+                    alert('Failed to generate PDF: ' + errorData.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error generating PDF: ' + error.message);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
