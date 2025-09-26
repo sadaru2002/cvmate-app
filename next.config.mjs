@@ -11,29 +11,29 @@ const nextConfig = {
   },
   output: 'standalone',
   
-  // CRITICAL: External packages to prevent bundling
-  serverExternalPackages: [
-    'playwright-aws-lambda',
-    'playwright-core',
-    'playwright',
-    'mongodb' // Also externalize mongodb as it's a server-side dependency
-  ],
+  experimental: { // serverExternalPackages must be nested under 'experimental'
+    // CRITICAL: External packages to prevent bundling
+    serverExternalPackages: [
+      'playwright-aws-lambda',
+      'playwright-core',
+      'playwright',
+      'mongodb' // Also externalize mongodb as it's a server-side dependency
+    ],
+  },
   
-  // Additional webpack configuration to exclude problematic modules
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Exclude Playwright packages from bundling
-      config.externals.push(
-        'playwright-aws-lambda',
-        'playwright-core', 
-        'playwright',
-        // Exclude the problematic chromium-bidi modules
-        'chromium-bidi',
-        'electron'
-      );
-    }
-    return config;
-  }
+  // Removed the webpack configuration as experimental.serverExternalPackages should handle this.
+  // webpack: (config, { isServer }) => {
+  //   if (isServer) {
+  //     config.externals.push(
+  //       'playwright-aws-lambda',
+  //       'playwright-core', 
+  //       'playwright',
+  //       'chromium-bidi',
+  //       'electron'
+  //     );
+  //   }
+  //   return config;
+  // }
 }
 
 export default nextConfig
