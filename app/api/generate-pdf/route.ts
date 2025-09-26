@@ -50,129 +50,113 @@ async function generatePDF(req: NextRequest) {
       @tailwind components;
       @tailwind utilities;
       
-      /* Reset and base styles */
+      /* Exact preview styles */
       * {
         box-sizing: border-box;
-        margin: 0;
-        padding: 0;
       }
       
       body {
         margin: 0;
-        padding: 20px;
+        padding: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
           "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
           sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        line-height: 1.4;
-        color: #000;
         background: white;
+        color: inherit;
       }
       
-      /* PDF-specific layout fixes */
+      /* Preserve exact layout from preview */
       #resume-template {
         width: 100% !important;
-        max-width: 100% !important;
+        max-width: none !important;
         height: auto !important;
         overflow: visible !important;
         position: relative !important;
-        transform: none !important;
-        float: none !important;
-        clear: both !important;
-        display: block !important;
         margin: 0 !important;
         padding: 0 !important;
+        background: white !important;
       }
       
-      /* Fix text overlapping and positioning */
-      #resume-template * {
-        position: relative !important;
-        float: none !important;
-        clear: both !important;
-        z-index: auto !important;
-        transform: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
+      /* Maintain all Tailwind classes as-is */
+      .max-w-4xl { max-width: 56rem !important; }
+      .mx-auto { margin-left: auto !important; margin-right: auto !important; }
+      .bg-white { background-color: rgb(255, 255, 255) !important; }
+      .p-8 { padding: 2rem !important; }
+      .shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; }
+      
+      .mb-6 { margin-bottom: 1.5rem !important; }
+      .mb-4 { margin-bottom: 1rem !important; }
+      .mb-2 { margin-bottom: 0.5rem !important; }
+      .mb-3 { margin-bottom: 0.75rem !important; }
+      .mt-2 { margin-top: 0.5rem !important; }
+      
+      .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+      .text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+      .text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+      .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
+      
+      .font-bold { font-weight: 700 !important; }
+      .font-semibold { font-weight: 600 !important; }
+      .font-medium { font-weight: 500 !important; }
+      
+      .text-gray-800 { color: rgb(31 41 55) !important; }
+      .text-gray-700 { color: rgb(55 65 81) !important; }
+      .text-gray-600 { color: rgb(75 85 99) !important; }
+      .text-gray-500 { color: rgb(107 114 128) !important; }
+      
+      .text-blue-500 { color: rgb(59 130 246) !important; }
+      .text-green-500 { color: rgb(34 197 94) !important; }
+      .text-blue-800 { color: rgb(30 64 175) !important; }
+      .text-green-800 { color: rgb(22 101 52) !important; }
+      .text-purple-800 { color: rgb(107 33 168) !important; }
+      .text-yellow-800 { color: rgb(133 77 14) !important; }
+      .text-red-800 { color: rgb(153 27 27) !important; }
+      
+      .bg-blue-100 { background-color: rgb(219 234 254) !important; }
+      .bg-green-100 { background-color: rgb(220 252 231) !important; }
+      .bg-purple-100 { background-color: rgb(243 232 255) !important; }
+      .bg-yellow-100 { background-color: rgb(254 249 195) !important; }
+      .bg-red-100 { background-color: rgb(254 226 226) !important; }
+      
+      .border-b-2 { border-bottom-width: 2px !important; }
+      .border-blue-500 { border-color: rgb(59 130 246) !important; }
+      .border-green-500 { border-color: rgb(34 197 94) !important; }
+      .pb-1 { padding-bottom: 0.25rem !important; }
+      
+      .px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+      .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+      .rounded-full { border-radius: 9999px !important; }
+      
+      .flex { display: flex !important; }
+      .flex-wrap { flex-wrap: wrap !important; }
+      .gap-2 { gap: 0.5rem !important; }
+      
+      .list-disc { list-style-type: disc !important; }
+      .ml-5 { margin-left: 1.25rem !important; }
+      
+      /* Links should remain clickable */
+      a {
+        color: inherit !important;
+        text-decoration: none !important;
       }
       
-      /* Proper spacing for sections */
-      .resume-section,
-      .mb-6, .mb-4, .mb-2 {
-        margin-bottom: 16px !important;
-        page-break-inside: avoid;
-      }
-      
-      /* Headings */
-      h1, h2, h3, h4, h5, h6 {
-        margin-bottom: 8px !important;
-        margin-top: 12px !important;
-        line-height: 1.2 !important;
-        font-weight: bold !important;
-        display: block !important;
-      }
-      
-      h1 { font-size: 24px !important; }
-      h2 { font-size: 20px !important; }
-      h3 { font-size: 16px !important; }
-      
-      /* Paragraphs and text */
-      p, div, span {
-        line-height: 1.4 !important;
-        margin-bottom: 4px !important;
-        word-wrap: break-word !important;
-        hyphens: auto !important;
-        display: block !important;
-      }
-      
-      /* Lists */
-      ul, ol {
-        margin-left: 20px !important;
-        margin-bottom: 8px !important;
-      }
-      
-      li {
-        margin-bottom: 2px !important;
-        line-height: 1.4 !important;
-      }
-      
-      /* Contact info and details */
-      .contact-info * {
-        display: inline-block !important;
-        margin-right: 12px !important;
-      }
-      
-      /* Skills and tags */
-      .skills-container > * {
-        display: inline-block !important;
-        margin-right: 8px !important;
-        margin-bottom: 4px !important;
-      }
-      
-      /* Fix flexbox and grid layouts */
-      .flex, .grid {
-        display: block !important;
-      }
-      
-      .flex > *, .grid > * {
-        display: block !important;
-        margin-bottom: 8px !important;
-      }
-      
-      /* Ensure visibility */
-      * {
-        visibility: visible !important;
-        opacity: 1 !important;
+      a:hover {
+        text-decoration: underline !important;
       }
       
       @media print {
         body { 
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
+          color-adjust: exact !important;
         }
+        
         * { 
           print-color-adjust: exact !important;
           -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
         }
         
         @page {
@@ -180,9 +164,9 @@ async function generatePDF(req: NextRequest) {
           margin: 0.5in;
         }
         
-        #resume-template {
-          transform: none !important;
-          page-break-inside: avoid !important;
+        /* Remove shadows for print */
+        .shadow-lg {
+          box-shadow: none !important;
         }
       }
     `;
@@ -370,7 +354,7 @@ async function generatePDF(req: NextRequest) {
       });
 
       console.log('Generating PDF...');
-      // Generate PDF with optimized settings
+      // Generate PDF with optimized settings for text preservation
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
@@ -380,13 +364,16 @@ async function generatePDF(req: NextRequest) {
           bottom: '0.5in',
           left: '0.5in'
         },
-        // Add options to prevent content overflow
-        scale: 0.8, // Scale down content slightly to fit better
-        preferCSSPageSize: false, // Don't use CSS page size
+        // Preserve text selectability and quality
+        scale: 1.0, // Keep original scale for exact match
+        preferCSSPageSize: false,
         displayHeaderFooter: false,
-        // Optimize for smaller file size
-        tagged: false,
-        outline: false
+        // Enable text selection and links
+        tagged: true, // Enable for accessibility and text selection
+        outline: false, // Disable outline to reduce file size
+        // Ensure links remain clickable
+        omitBackground: false,
+        waitForFonts: true
       });
 
       console.log('PDF generated successfully, size:', pdfBuffer.length);
