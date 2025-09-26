@@ -6,39 +6,38 @@ import fs from 'fs/promises'; // Import fs.promises for reading files
 
 export const maxDuration = 60;
 
-// Load font files into buffers
-const loadFont = async (fontPath: string) => {
+// Function to load font file and return as a base64 data URL
+const loadFontAsDataUrl = async (fontPath: string) => {
   try {
     const absolutePath = path.join(process.cwd(), 'public', 'fonts', fontPath);
     const fontBuffer = await fs.readFile(absolutePath);
-    return fontBuffer;
+    return `data:font/ttf;base64,${fontBuffer.toString('base64')}`;
   } catch (error) {
-    console.error(`Failed to load font: ${fontPath}`, error);
-    throw new Error(`Failed to load font: ${fontPath}`);
+    console.error(`Failed to load font as Data URL: ${fontPath}`, error);
+    throw new Error(`Failed to load font as Data URL: ${fontPath}`);
   }
 };
 
-// Register Roboto font using local TTF files loaded as buffers
-// This needs to be done outside the POST handler to ensure it's registered once
-// and the async loading is handled.
-let robotoRegularBuffer: Buffer | null = null;
-let robotoBoldBuffer: Buffer | null = null;
+// Register Roboto font using local TTF files loaded as base64 data URLs
+// This needs to be done once at module initialization.
+let robotoRegularDataUrl: string | null = null;
+let robotoBoldDataUrl: string | null = null;
 
 // Use a self-invoking async function to load fonts on module initialization
 (async () => {
   try {
-    robotoRegularBuffer = await loadFont('Roboto-Regular.ttf');
-    robotoBoldBuffer = await loadFont('Roboto-Bold.ttf');
+    robotoRegularDataUrl = await loadFontAsDataUrl('Roboto-Regular.ttf');
+    robotoBoldDataUrl = await loadFontAsDataUrl('Roboto-Bold.ttf');
 
-    if (robotoRegularBuffer) {
+    if (robotoRegularDataUrl && robotoBoldDataUrl) {
       Font.register({
         family: "Roboto",
         fonts: [
-          { data: robotoRegularBuffer, fontWeight: "normal" },
-          { data: robotoBoldBuffer!, fontWeight: "bold" }, // Assert non-null as it's loaded above
+          { src: robotoRegularDataUrl, fontWeight: "normal" },
+          { src: robotoBoldDataUrl, fontWeight: "bold" },
         ],
       });
-      console.log('Fonts registered successfully with buffers.');
+      console.log('Fonts registered successfully with Data URLs.');
     }
   } catch (error) {
     console.error('Error during initial font loading and registration:', error);
@@ -100,7 +99,7 @@ const createPDFDocument = (data: any) => {
 
   const personalInfo = data?.personalInfo || {};
   const professionalSummary = data?.professionalSummary;
-  const workExperience = data?.workExperience || [];
+  const workExperience = data?.workExperiences || [];
   const education = data?.education || [];
   const skills = data?.skills?.technical || [];
   const projects = data?.projects || [];
@@ -112,7 +111,7 @@ const createPDFDocument = (data: any) => {
         {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.name}>{personalInfo.fullName || "Your Name"}</Text>
-          <Text style={styles.text}>{personalInfo.title || "Professional Title"}</Text>
+          <Text style={styles.text}>{personalInfo.designation || "Professional Title"}</Text>
           <Text style={styles.text}>Email: {personalInfo.email || "email@example.com"}</Text>
           <Text style={styles.text}>Phone: {personalInfo.phone || "+1 234-567-8900"}</Text>
           {personalInfo.location && <Text style={styles.text}>Location: {personalInfo.location}</Text>}
@@ -133,16 +132,14 @@ const createPDFDocument = (data: any) => {
             {workExperience.map((job: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={{ ...styles.text, fontWeight: 'bold' }}>
-                  {`${job.position} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`}
+                  {`${job.role} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`}
                 </Text>
                 {job.description && <Text style={styles.text}>{job.description}</Text>}
-                {job.responsibilities && job.responsibilities.length > 0 && (
-                  <View style={{ marginLeft: 10 }}>
-                    {job.responsibilities.map((resp: string, respIndex: number) => (
-                      <Text key={respIndex} style={styles.listItem}>• {resp}</Text>
-                    ))}
-                  </View>
-                )}
+                {/* Responsibilities are not directly in the current resumeData structure for PDF,
+                    but if description is bulleted, it will appear as a single block.
+                    If you need explicit bullet points, the resumeData structure or this PDF component
+                    would need to be updated to parse description into an array of responsibilities.
+                */}
               </View>
             ))}
           </View>
@@ -157,7 +154,7 @@ const createPDFDocument = (data: any) => {
                 <Text style={styles.text}>
                   {`${edu.degree} - ${edu.institution} (${edu.startDate} - ${edu.endDate})`}
                 </Text>
-                {edu.gpa && <Text style={styles.text}>GPA: {edu.gpa}</Text>}
+                {/* GPA is not in the current resumeData structure for PDF */}
               </View>
             ))}
           </View>
@@ -177,9 +174,9 @@ const createPDFDocument = (data: any) => {
             <Text style={styles.sectionTitle}>Projects</Text>
             {projects.map((project: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={{ ...styles.text, fontWeight: 'bold' }}>{project.name}</Text>
+                <Text style={{ ...styles.text, fontWeight: 'bold' }}>{project.title}</Text>
                 {project.description && <Text style={styles.text}>{project.description}</Text>}
-                {project.link && <Link src={project.link} style={styles.link}>Live Demo</Link>}
+                {project.LiveDemo && <Link src={project.LiveDemo} style={styles.link}>Live Demo</Link>}
                 {project.github && <Link src={project.github} style={styles.link}>GitHub</Link>}
               </View>
             ))}
@@ -193,9 +190,9 @@ const createPDFDocument = (data: any) => {
             {certifications.map((cert: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${cert.name} by ${cert.issuer} (${cert.date})`}
+                  {`${cert.title} by ${cert.issuer} (${cert.year})`}
                 </Text>
-                {cert.url && <Link src={cert.url} style={styles.link}>View Certificate</Link>}
+                {/* URL is not in the current resumeData structure for PDF */}
               </View>
             ))}
           </View>
@@ -225,7 +222,7 @@ export async function POST(req: NextRequest) {
     const fullResumeData = {
       personalInfo: resumeData.profileInfo,
       professionalSummary: resumeData.profileInfo?.summary,
-      workExperience: resumeData.workExperiences,
+      workExperiences: resumeData.workExperiences, // Corrected key
       education: resumeData.education,
       skills: { technical: resumeData.skills?.map((s: any) => s.name) }, // Map skills to simple array
       projects: resumeData.projects,
