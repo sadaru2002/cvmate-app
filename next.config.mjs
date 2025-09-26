@@ -14,6 +14,10 @@ const nextConfig = {
       // External dependencies for server-side
       config.externals = [
         ...config.externals,
+        // External dependencies for serverless compatibility
+        'playwright-core',
+        'chromium-bidi',
+        'electron',
         // MongoDB related externals for serverless deployment
         'aws4',
         '@aws-sdk/credential-providers',

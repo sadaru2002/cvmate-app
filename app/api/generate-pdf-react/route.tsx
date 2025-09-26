@@ -1,25 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, pdf, Link } from "@react-pdf/renderer";
 import React from "react";
 
 export const maxDuration = 60;
 
-// Font loading with better error handling - skip custom fonts entirely for now
-let fontsReady = false;
-let fontLoadingAttempted = false;
-
-const loadFontsWithRetry = async (maxRetries = 1) => {
-  if (fontLoadingAttempted) return fontsReady;
-  fontLoadingAttempted = true;
-
-  // For now, skip custom font loading entirely to avoid DataView errors
-  console.log('Skipping custom font loading to avoid fontkit errors');
-  fontsReady = false; // Force system fonts
-  return false;
-};
-
-// Don't initialize font loading to avoid errors
-// loadFontsWithRetry();
+// Vercel-optimized version - no custom font loading
 
 
 // Styles using only system fonts to prevent fontkit errors
@@ -195,7 +180,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   );
 };
 
-const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttempts = 3): Promise<Buffer> => {
+const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttempts = 2): Promise<Buffer> => {
   let lastError: Error | null = null;
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -203,109 +188,119 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       console.log(`PDF generation attempt ${attempt}/${maxAttempts}`);
       console.log('Resume data keys:', Object.keys(resumeData || {}));
       
-      // Always use system fonts for reliability
+      // Always use system fonts for Vercel reliability
       const useSystemFonts = true;
-      console.log(`Using system fonts for attempt ${attempt}`);
+      console.log(`Using system fonts for Vercel compatibility`);
 
-      // Prepare resume data with safe defaults and extensive logging
+      // Prepare resume data with comprehensive fallbacks
       const fullResumeData = {
         personalInfo: {
-          fullName: resumeData.profileInfo?.fullName || resumeData.personalInfo?.fullName || 'John Doe',
-          designation: resumeData.profileInfo?.designation || resumeData.personalInfo?.designation || 'Professional',
-          email: resumeData.profileInfo?.email || resumeData.personalInfo?.email || 'email@example.com',
-          phone: resumeData.profileInfo?.phone || resumeData.personalInfo?.phone || '+1234567890',
-          location: resumeData.profileInfo?.location || resumeData.personalInfo?.location || '',
+          fullName: resumeData?.profileInfo?.fullName || resumeData?.personalInfo?.fullName || 'John Doe',
+          designation: resumeData?.profileInfo?.designation || resumeData?.personalInfo?.designation || 'Professional',
+          email: resumeData?.profileInfo?.email || resumeData?.personalInfo?.email || 'email@example.com',
+          phone: resumeData?.profileInfo?.phone || resumeData?.personalInfo?.phone || '+1 (555) 123-4567',
+          location: resumeData?.profileInfo?.location || resumeData?.personalInfo?.location || 'City, State',
         },
-        professionalSummary: resumeData.profileInfo?.summary || resumeData.professionalSummary || 'Professional summary not provided.',
-        workExperiences: Array.isArray(resumeData.workExperiences) ? resumeData.workExperiences : [],
-        education: Array.isArray(resumeData.education) ? resumeData.education : [],
+        professionalSummary: resumeData?.profileInfo?.summary || resumeData?.professionalSummary || 'Experienced professional with demonstrated expertise.',
+        workExperiences: Array.isArray(resumeData?.workExperiences) ? resumeData.workExperiences.slice(0, 5) : [],
+        education: Array.isArray(resumeData?.education) ? resumeData.education.slice(0, 3) : [],
         skills: { 
-          technical: Array.isArray(resumeData.skills) 
-            ? resumeData.skills.map((s: any) => s?.name || s).filter(Boolean) 
-            : []
+          technical: Array.isArray(resumeData?.skills) 
+            ? resumeData.skills.map((s: any) => s?.name || s).filter(Boolean).slice(0, 10)
+            : ['JavaScript', 'Python', 'React'] // Default skills
         },
-        projects: Array.isArray(resumeData.projects) ? resumeData.projects : [],
-        certifications: Array.isArray(resumeData.certifications) ? resumeData.certifications : [],
-        languages: Array.isArray(resumeData.languages) ? resumeData.languages : [],
-        interests: Array.isArray(resumeData.interests) ? resumeData.interests : [],
+        projects: Array.isArray(resumeData?.projects) ? resumeData.projects.slice(0, 4) : [],
+        certifications: Array.isArray(resumeData?.certifications) ? resumeData.certifications.slice(0, 5) : [],
+        languages: [],
+        interests: [],
       };
 
-      console.log('Processed resume data:', JSON.stringify(fullResumeData, null, 2));
+      console.log('Processed resume data for PDF generation');
 
-      const pdfDocument = createPDFDocument(fullResumeData, useSystemFonts);
-      console.log('PDF document created successfully');
+      // Create PDF with error boundary
+      let pdfDocument;
+      try {
+        pdfDocument = createPDFDocument(fullResumeData, useSystemFonts);
+        console.log('PDF document created successfully');
+      } catch (docError: any) {
+        console.error('Error creating PDF document:', docError);
+        throw new Error(`PDF document creation failed: ${docError.message}`);
+      }
       
       const pdfInstance = pdf(pdfDocument);
       console.log('PDF instance created successfully');
       
-      // Add timeout to prevent hanging
+      // Reduced timeout for Vercel
       const pdfBuffer = await Promise.race([
         pdfInstance.toBuffer(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('PDF generation timeout after 30 seconds')), 30000)
+          setTimeout(() => reject(new Error('PDF generation timeout after 25 seconds')), 25000)
         )
       ]) as Buffer;
 
-      console.log('PDF buffer generated, checking validity...');
+      console.log('PDF buffer generated, validating...');
 
-      // More detailed buffer validation
+      // Comprehensive buffer validation
       if (!pdfBuffer) {
         throw new Error('PDF buffer is null or undefined');
       }
       
       if (!Buffer.isBuffer(pdfBuffer)) {
-        throw new Error(`PDF buffer is not a Buffer instance, got: ${typeof pdfBuffer}`);
+        throw new Error(`Invalid buffer type: ${typeof pdfBuffer}`);
       }
       
       if (pdfBuffer.length === 0) {
         throw new Error('PDF buffer is empty (0 bytes)');
       }
 
-      // Check if buffer starts with PDF header
-      const pdfHeader = pdfBuffer.subarray(0, 4).toString();
-      if (!pdfHeader.startsWith('%PDF')) {
-        throw new Error(`Generated buffer does not appear to be a valid PDF (header: ${pdfHeader})`);
+      if (pdfBuffer.length < 100) {
+        throw new Error(`PDF buffer too small: ${pdfBuffer.length} bytes`);
       }
 
-      console.log(`PDF generated successfully on attempt ${attempt}, buffer size: ${pdfBuffer.length} bytes`);
+      // Check PDF header
+      const pdfHeader = pdfBuffer.subarray(0, 8).toString();
+      if (!pdfHeader.includes('%PDF')) {
+        throw new Error(`Invalid PDF header: ${pdfHeader}`);
+      }
+
+      console.log(`✅ PDF generated successfully on attempt ${attempt}, size: ${pdfBuffer.length} bytes`);
       return pdfBuffer;
 
     } catch (error: any) {
       lastError = error;
-      console.warn(`PDF generation attempt ${attempt} failed:`, error.message);
+      console.warn(`❌ PDF generation attempt ${attempt} failed:`, error.message);
       
-      // If it's a font-related error, force system fonts on next attempt
+      // If it's a font-related error, note it for debugging
       if (error.message?.includes('DataView') || 
           error.message?.includes('fontkit') || 
           error.message?.includes('Offset is outside') ||
           error.message?.includes('Glyph')) {
-        console.warn('Font-related error detected, forcing system fonts for next attempt');
-        fontsReady = false;
-        fontLoadingAttempted = false; // Allow retry with system fonts
+        console.warn('Font-related error detected - using system fonts only');
       }
       
-      // On final attempt, try with minimal configuration
+      // On final attempt, try with absolutely minimal data
       if (attempt === maxAttempts) {
         try {
-          console.log('Final attempt with minimal configuration and system fonts');
-          const fallbackData = createMinimalResumeData(resumeData);
-          const fallbackDocument = createPDFDocument(fallbackData, true); // Force system fonts
-          const fallbackInstance = pdf(fallbackDocument);
-          const fallbackBuffer = await fallbackInstance.toBuffer();
+          console.log('🔄 Final attempt with minimal configuration');
+          const minimalData = createMinimalResumeData(resumeData);
+          const minimalDoc = createPDFDocument(minimalData, true);
+          const minimalInstance = pdf(minimalDoc);
+          const minimalBuffer = await minimalInstance.toBuffer() as unknown as Buffer;
           
-          if (!fallbackBuffer || !Buffer.isBuffer(fallbackBuffer) || fallbackBuffer.length === 0) {
-            throw new Error('Fallback PDF buffer is invalid or empty');
+          if (!minimalBuffer || !Buffer.isBuffer(minimalBuffer) || minimalBuffer.length === 0) {
+            throw new Error('Even minimal PDF generation failed');
           }
           
-          return fallbackBuffer;
-        } catch (fallbackError) {
-          console.error('Fallback PDF generation failed:', fallbackError);
-          throw lastError; // Throw the original error
+          console.log(`✅ Minimal PDF generated: ${minimalBuffer.length} bytes`);
+          return minimalBuffer;
+        } catch (minimalError) {
+          console.error('💥 Minimal PDF generation failed:', minimalError);
+          throw lastError;
         }
       }
       
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      // Brief wait before retry
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
   
