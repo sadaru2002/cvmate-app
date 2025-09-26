@@ -6,25 +6,44 @@ import React from 'react'; // Import React
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('PDF generation started with @react-pdf/renderer');
+    
     const resumeData: ResumeFormData = await req.json();
 
     if (!resumeData) {
+      console.error('No resume data provided');
       return NextResponse.json({ error: 'Resume data is required' }, { status: 400 });
     }
 
+    console.log('Creating PDF document with resume data...');
+
     // Render the React PDF component to a stream using React.createElement
     const doc = React.createElement(PdfResume, { data: resumeData });
-    const stream = await renderToStream(doc);
+    
+    console.log('Rendering PDF to stream...');
+    const stream = await renderToStream(doc as React.ReactElement);
 
     // Convert the stream to a Buffer
+    console.log('Converting stream to buffer...');
     const buffer = await new Promise<Buffer>((resolve, reject) => {
       const chunks: Buffer[] = [];
-      stream.on('data', (chunk) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks)));
-      stream.on('error', reject);
+      stream.on('data', (chunk) => {
+        chunks.push(chunk);
+        console.log('Received chunk of size:', chunk.length);
+      });
+      stream.on('end', () => {
+        console.log('Stream ended, total chunks:', chunks.length);
+        resolve(Buffer.concat(chunks));
+      });
+      stream.on('error', (err) => {
+        console.error('Stream error:', err);
+        reject(err);
+      });
     });
 
-    return new NextResponse(buffer, {
+    console.log('PDF generated successfully, buffer size:', buffer.length, 'bytes');
+
+    return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

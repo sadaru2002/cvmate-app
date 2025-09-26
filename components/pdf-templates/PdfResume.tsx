@@ -5,6 +5,7 @@ import { cleanUrlForDisplay } from '@/lib/utils';
 
 // Use built-in fonts for maximum compatibility on serverless environments
 // These fonts are built into @react-pdf/renderer and don't need external loading
+console.log('@react-pdf/renderer fonts initialized with built-in fonts');
 
 const styles = StyleSheet.create({
   page: {
