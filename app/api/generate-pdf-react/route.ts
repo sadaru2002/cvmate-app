@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { renderToStream } from '@react-pdf/renderer';
 import PdfResume from '@/components/pdf-templates/PdfResume'; // Import the new PDF component
 import { ResumeFormData } from '@/hooks/use-resume-builder'; // Import ResumeFormData type
+import React from 'react'; // Import React
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,8 +12,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Resume data is required' }, { status: 400 });
     }
 
-    // Render the React PDF component to a stream
-    const doc = <PdfResume data={resumeData} />;
+    // Render the React PDF component to a stream using React.createElement
+    const doc = React.createElement(PdfResume, { data: resumeData });
     const stream = await renderToStream(doc);
 
     // Convert the stream to a Buffer
