@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "app/api/generate-pdf/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "app/api/generate-pdf-vector/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "regions": ["iad1"],
+  "buildCommand": "pnpm build"
+}

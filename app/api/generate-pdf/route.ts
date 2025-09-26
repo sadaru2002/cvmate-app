@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer'; // Changed to standard puppeteer
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -26,20 +27,24 @@ export async function POST(req: NextRequest) {
       console.error('Failed to load global CSS:', cssError);
     }
 
-    console.log('Launching Puppeteer Chromium...');
+    console.log('Launching Puppeteer with serverless Chromium...');
+    
+    // Configure for serverless deployment
+    const executablePath = process.env.NODE_ENV === 'production'
+      ? await chromium.executablePath()
+      : process.platform === 'win32'
+      ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+      : process.platform === 'darwin'
+      ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+      : '/usr/bin/google-chrome';
+
     browser = await puppeteer.launch({
+      args: process.env.NODE_ENV === 'production' 
+        ? [...chromium.args, '--disable-dev-shm-usage']
+        : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      defaultViewport: { width: 1200, height: 1600 },
+      executablePath,
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Disable /dev/shm usage
-        '--disable-gpu', // Disable GPU hardware acceleration
-        '--no-zygote', // Disable the zygote process
-        '--single-process', // Use a single process for the browser
-        '--disable-web-security', // Disable web security (use with caution)
-        '--font-render-hinting=none', // Disable font hinting for consistent rendering
-      ],
-      // executablePath: process.env.CHROME_EXECUTABLE_PATH || undefined, // Uncomment if you need to specify path
     });
 
     console.log('Browser launched successfully');
