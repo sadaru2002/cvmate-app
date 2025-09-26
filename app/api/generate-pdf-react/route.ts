@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { renderToStream } from '@react-pdf/renderer';
-import PdfResume from '@/components/pdf-templates/PdfResume'; // Import the new PDF component
+import PdfTemplateRouter from '@/components/pdf-templates/PdfTemplateRouter'; // Import the template router
 import { ResumeFormData } from '@/hooks/use-resume-builder'; // Import ResumeFormData type
 import React from 'react'; // Import React
 
@@ -8,17 +8,22 @@ export async function POST(req: NextRequest) {
   try {
     console.log('PDF generation started with @react-pdf/renderer');
     
-    const resumeData: ResumeFormData = await req.json();
+    const body = await req.json();
+    const { resumeData, template, colorPalette } = body;
 
     if (!resumeData) {
       console.error('No resume data provided');
       return NextResponse.json({ error: 'Resume data is required' }, { status: 400 });
     }
 
-    console.log('Creating PDF document with resume data...');
+    console.log('Creating PDF document with resume data, template:', template, 'colorPalette:', colorPalette?.length, 'colors');
 
-    // Render the React PDF component to a stream using React.createElement
-    const doc = React.createElement(PdfResume, { data: resumeData });
+    // Render the React PDF component using the template router
+    const doc = React.createElement(PdfTemplateRouter, { 
+      data: resumeData, 
+      template: template || 'TemplateOne',
+      colorPalette: colorPalette || []
+    });
     
     console.log('Rendering PDF to stream...');
     const stream = await renderToStream(doc as React.ReactElement);

@@ -29,7 +29,11 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(resumeData),
+        body: JSON.stringify({
+          resumeData,
+          template: resumeData.template || 'TemplateOne',
+          colorPalette: resumeData.colorPalette || []
+        }),
       });
 
       console.log('API Response status:', response.status);
