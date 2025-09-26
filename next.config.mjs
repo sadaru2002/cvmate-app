@@ -11,10 +11,11 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // External playwright dependencies for server-side
+      // External dependencies for server-side (but not playwright-aws-lambda)
       config.externals = [
         ...config.externals,
-        'playwright-aws-lambda',
+        // Remove playwright-aws-lambda from externals to allow proper bundling
+        // 'playwright-aws-lambda', // Commented out
         'playwright-core',
         'chromium-bidi',
         'electron',
