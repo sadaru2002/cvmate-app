@@ -1,10 +1,6 @@
 {
   "functions": {
-    "app/api/generate-pdf/route.ts": {
-      "maxDuration": 60,
-      "memory": 1024
-    },
-    "app/api/generate-pdf-vector/route.ts": {
+    "app/api/generate-pdf-react/route.ts": {
       "maxDuration": 60,
       "memory": 1024
     }

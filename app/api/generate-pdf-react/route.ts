@@ -1,16 +1,20 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
 
 export const maxDuration = 60;
 
-// Register Inter font
+// Register Inter font from a highly reliable CDN
 Font.register({
   family: "Inter",
   fonts: [
     {
-      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
+      src: "https://rsms.me/inter/font-files/Inter-Regular.woff", // Using a different, potentially more stable CDN
       fontWeight: "normal",
+    },
+    {
+      src: "https://rsms.me/inter/font-files/Inter-Bold.woff",
+      fontWeight: "bold",
     },
   ],
 });
@@ -22,6 +26,7 @@ const styles = StyleSheet.create({
     padding: 30,
     fontFamily: "Inter",
     fontSize: 11,
+    color: "#333333",
   },
   header: {
     marginBottom: 20,
@@ -39,66 +44,135 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     marginBottom: 5,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 10,
+    borderBottom: "1 solid #e5eeeb",
+    paddingBottom: 5,
+  },
+  sectionContent: {
+    marginBottom: 15,
+  },
+  listItem: {
+    fontSize: 11,
+    color: "#4b5563",
+    marginBottom: 3,
+  },
+  link: {
+    color: "#2563eb",
+    textDecoration: "underline",
+  },
 });
 
-const createPDFDocument = (data) => {
-  console.log('Creating PDF document with data:', data?.personalInfo?.fullName);
-  
-  return React.createElement(Document, {},
-    React.createElement(Page, { size: "A4", style: styles.page },
-      // Header section
-      React.createElement(View, { style: styles.header },
-        React.createElement(Text, { style: styles.name },
-          data?.personalInfo?.fullName || "Your Name"
-        ),
-        React.createElement(Text, { style: styles.text },
-          data?.personalInfo?.title || "Professional Title"
-        ),
-        React.createElement(Text, { style: styles.text },
-          `Email: ${data?.personalInfo?.email || "email@example.com"}`
-        ),
-        React.createElement(Text, { style: styles.text },
-          `Phone: ${data?.personalInfo?.phone || "+1 234-567-8900"}`
-        )
-      ),
-      
-      // Professional Summary
-      data?.professionalSummary && React.createElement(View, { style: { marginBottom: 15 } },
-        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Professional Summary"),
-        React.createElement(Text, { style: styles.text }, data.professionalSummary)
-      ),
-      
-      // Work Experience
-      data?.workExperience && data.workExperience.length > 0 && React.createElement(View, { style: { marginBottom: 15 } },
-        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Work Experience"),
-        ...data.workExperience.map((job, index) =>
-          React.createElement(View, { key: index, style: { marginBottom: 10 } },
-            React.createElement(Text, { style: { ...styles.text, fontWeight: 'bold' } },
-              `${job.position} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`
-            ),
-            job.description && React.createElement(Text, { style: styles.text }, job.description)
-          )
-        )
-      ),
-      
-      // Education
-      data?.education && data.education.length > 0 && React.createElement(View, { style: { marginBottom: 15 } },
-        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Education"),
-        ...data.education.map((edu, index) =>
-          React.createElement(View, { key: index, style: { marginBottom: 10 } },
-            React.createElement(Text, { style: styles.text },
-              `${edu.degree} - ${edu.institution} (${edu.startDate} - ${edu.endDate})`
-            )
-          )
-        )
-      ),
-      
-      // Skills
-      data?.skills?.technical && data.skills.technical.length > 0 && React.createElement(View, { style: { marginBottom: 15 } },
-        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Technical Skills"),
-        React.createElement(Text, { style: styles.text }, data.skills.technical.join(", "))
-      )
-    )
+const createPDFDocument = (data: any) => {
+  console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
+
+  const personalInfo = data?.personalInfo || {};
+  const professionalSummary = data?.professionalSummary;
+  const workExperience = data?.workExperience || [];
+  const education = data?.education || [];
+  const skills = data?.skills?.technical || [];
+  const projects = data?.projects || [];
+  const certifications = data?.certifications || [];
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Text style={styles.name}>{personalInfo.fullName || "Your Name"}</Text>
+          <Text style={styles.text}>{personalInfo.title || "Professional Title"}</Text>
+          <Text style={styles.text}>Email: {personalInfo.email || "email@example.com"}</Text>
+          <Text style={styles.text}>Phone: {personalInfo.phone || "+1 234-567-8900"}</Text>
+          {personalInfo.location && <Text style={styles.text}>Location: {personalInfo.location}</Text>}
+        </View>
+
+        {/* Professional Summary */}
+        {professionalSummary && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionTitle}>Professional Summary</Text>
+            <Text style={styles.text}>{professionalSummary}</Text>
+          </View>
+        )}
+
+        {/* Work Experience */}
+        {workExperience.length > 0 && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionTitle}>Work Experience</Text>
+            {workExperience.map((job: any, index: number) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={{ ...styles.text, fontWeight: 'bold' }}>
+                  {`${job.position} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`}
+                </Text>
+                {job.description && <Text style={styles.text}>{job.description}</Text>}
+                {job.responsibilities && job.responsibilities.length > 0 && (
+                  <View style={{ marginLeft: 10 }}>
+                    {job.responsibilities.map((resp: string, respIndex: number) => (
+                      <Text key={respIndex} style={styles.listItem}>• {resp}</Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Education */}
+        {education.length > 0 && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionTitle}>Education</Text>
+            {education.map((edu: any, index: number) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={styles.text}>
+                  {`${edu.degree} - ${edu.institution} (${edu.startDate} - ${edu.endDate})`}
+                </Text>
+                {edu.gpa && <Text style={styles.text}>GPA: {edu.gpa}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Skills */}
+        {skills.length > 0 && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionTitle}>Technical Skills</Text>
+            <Text style={styles.text}>{skills.join(", ")}</Text>
+          </View>
+        )}
+
+        {/* Projects */}
+        {projects.length > 0 && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionTitle}>Projects</Text>
+            {projects.map((project: any, index: number) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={{ ...styles.text, fontWeight: 'bold' }}>{project.name}</Text>
+                {project.description && <Text style={styles.text}>{project.description}</Text>}
+                {project.link && <Link src={project.link} style={styles.link}>Live Demo</Link>}
+                {project.github && <Link src={project.github} style={styles.link}>GitHub</Link>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Certifications */}
+        {certifications.length > 0 && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionTitle}>Certifications</Text>
+            {certifications.map((cert: any, index: number) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={styles.text}>
+                  {`${cert.name} by ${cert.issuer} (${cert.date})`}
+                </Text>
+                {cert.url && <Link src={cert.url} style={styles.link}>View Certificate</Link>}
+              </View>
+            ))}
+          </View>
+        )}
+      </Page>
+    </Document>
   );
 };
 
@@ -106,22 +180,37 @@ export async function POST(req: NextRequest) {
   try {
     const { resumeData, filename = "resume" } = await req.json();
 
+    console.log('API: generate-pdf-react received request.');
+    console.log('API: Received resumeData keys:', Object.keys(resumeData || {}));
+    console.log('API: Filename:', filename);
+
     if (!resumeData) {
+      console.error('API: Resume data is missing.');
       return NextResponse.json(
         { success: false, error: "Resume data is required" },
         { status: 400 }
       );
     }
 
-    console.log('Generating PDF with data:', resumeData?.personalInfo?.fullName);
+    // Ensure all necessary data is present for the PDF component
+    const fullResumeData = {
+      personalInfo: resumeData.profileInfo,
+      professionalSummary: resumeData.profileInfo?.summary,
+      workExperience: resumeData.workExperiences,
+      education: resumeData.education,
+      skills: { technical: resumeData.skills?.map((s: any) => s.name) }, // Map skills to simple array
+      projects: resumeData.projects,
+      certifications: resumeData.certifications,
+      languages: resumeData.languages,
+      interests: resumeData.interests,
+    };
 
-    const pdfDocument = createPDFDocument(resumeData);
+    console.log('API: Calling createPDFDocument with processed data.');
+    const pdfDocument = createPDFDocument(fullResumeData);
     const pdfInstance = pdf(pdfDocument);
-    const pdfBlob = await pdfInstance.toBlob();
+    const pdfBuffer = await pdfInstance.toBuffer();
     
-    // Convert Blob to Buffer for Next.js response
-    const arrayBuffer = await pdfBlob.arrayBuffer();
-    const pdfBuffer = Buffer.from(arrayBuffer);
+    console.log('API: PDF generated successfully, buffer size:', pdfBuffer.length);
 
     return new NextResponse(pdfBuffer, {
       status: 200,
@@ -132,7 +221,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("React PDF error:", error);
+    console.error("API: React PDF generation error:", error);
+    console.error("API: Error details:", error?.message);
+    console.error("API: Error stack:", error?.stack);
     return NextResponse.json({
       success: false,
       error: "Failed to generate PDF",
