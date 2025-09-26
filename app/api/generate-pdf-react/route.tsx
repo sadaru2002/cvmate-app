@@ -177,10 +177,10 @@ const createPDFDocument = (data: any) => {
 };
 
 export async function POST(req: NextRequest) {
+  console.log('API: generate-pdf-react POST request received.');
   try {
     const { resumeData, filename = "resume" } = await req.json();
 
-    console.log('API: generate-pdf-react received request.');
     console.log('API: Received resumeData keys:', Object.keys(resumeData || {}));
     console.log('API: Filename:', filename);
 
@@ -207,6 +207,7 @@ export async function POST(req: NextRequest) {
 
     console.log('API: Calling createPDFDocument with processed data.');
     const pdfDocument = createPDFDocument(fullResumeData);
+    console.log('API: PDF Document created. Attempting to buffer...');
     const pdfInstance = pdf(pdfDocument);
     const pdfBuffer = await pdfInstance.toBuffer();
     
@@ -221,7 +222,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("API: React PDF generation error:", error);
+    console.error("API: React PDF generation error caught in POST handler:", error);
     console.error("API: Error details:", error?.message);
     console.error("API: Error stack:", error?.stack);
     return NextResponse.json({
