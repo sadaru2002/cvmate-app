@@ -11,29 +11,25 @@ const nextConfig = {
   },
   output: 'standalone',
   
-  experimental: { // serverExternalPackages must be nested under 'experimental'
-    // CRITICAL: External packages to prevent bundling
-    serverExternalPackages: [
-      'playwright-aws-lambda',
-      'playwright-core',
-      'playwright',
-      'mongodb' // Also externalize mongodb as it's a server-side dependency
-    ],
-  },
+  // Removed experimental.serverExternalPackages as it's unrecognized and causing issues.
   
-  // Removed the webpack configuration as experimental.serverExternalPackages should handle this.
-  // webpack: (config, { isServer }) => {
-  //   if (isServer) {
-  //     config.externals.push(
-  //       'playwright-aws-lambda',
-  //       'playwright-core', 
-  //       'playwright',
-  //       'chromium-bidi',
-  //       'electron'
-  //     );
-  //   }
-  //   return config;
-  // }
+  // Use webpack.externals to explicitly exclude problematic modules from the server bundle
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push(
+        // Exclude playwright-core and its internal dependencies
+        'playwright-core', 
+        'playwright', // Include 'playwright' as well, just in case
+        'chromium-bidi', // Specific problematic internal dependency
+        'electron', // Another problematic internal dependency
+        // Keep playwright-aws-lambda external as it's a serverless-specific dependency
+        'playwright-aws-lambda',
+        // Also ensure mongodb is externalized if it's causing issues
+        'mongodb'
+      );
+    }
+    return config;
+  }
 }
 
 export default nextConfig
