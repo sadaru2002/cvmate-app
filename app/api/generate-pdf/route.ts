@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { launchChromium } from 'playwright-aws-lambda';
 
 export async function POST(req: NextRequest) {
+  // Set a timeout for the entire PDF generation process
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('PDF generation timeout - process took too long')), 120000); // 2 minutes
+  });
+
+  try {
+    // Race between PDF generation and timeout
+    return await Promise.race([
+      generatePDF(req),
+      timeoutPromise
+    ]) as NextResponse;
+  } catch (error) {
+    console.error('PDF generation failed:', error);
+    
+    if (error.message?.includes('timeout')) {
+      return NextResponse.json(
+        { error: 'PDF generation timed out', details: 'The process took too long. Please try again.' },
+        { status: 408 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to generate PDF', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+async function generatePDF(req: NextRequest) {
   try {
     const { html } = await req.json();
 
@@ -69,10 +98,10 @@ export async function POST(req: NextRequest) {
     let page;
     
     try {
-      const maxRetries = 3;
+      const maxRetries = 5;
       let lastError;
 
-      // Try to launch browser with retries
+      // Try to launch browser with retries and exponential backoff
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`Launching browser (attempt ${attempt}/${maxRetries})...`);
@@ -94,7 +123,20 @@ export async function POST(req: NextRequest) {
               '--no-zygote',
               '--disable-web-security',
               '--disable-features=VizDisplayCompositor',
+              '--disable-software-rasterizer',
+              '--disable-background-networking',
+              '--disable-default-apps',
+              '--disable-sync',
+              '--metrics-recording-only',
+              '--no-first-run',
+              '--safebrowsing-disable-auto-update',
+              '--disable-hang-monitor',
+              '--disable-prompt-on-repost',
+              '--disable-domain-reliability',
+              '--disable-component-update',
+              '--use-mock-keychain',
             ],
+            timeout: 60000, // 60 second timeout
           });
           
           console.log('Browser launched successfully');
@@ -104,14 +146,22 @@ export async function POST(req: NextRequest) {
           lastError = error;
           console.error(`Browser launch attempt ${attempt} failed:`, error.message);
           
+          // Special handling for ETXTBSY errors (binary busy)
+          if (error.message?.includes('ETXTBSY') || error.message?.includes('spawn')) {
+            console.log('Detected ETXTBSY/spawn error, using longer delay...');
+          }
+          
           if (attempt < maxRetries) {
-            console.log(`Retrying in 1 second...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Exponential backoff: 1s, 2s, 4s, 8s
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
       }
       
       if (!browser) {
+        console.error('All browser launch attempts failed. Last error:', lastError?.message);
         throw lastError || new Error('Failed to launch browser after all retries');
       }
 
@@ -153,7 +203,17 @@ export async function POST(req: NextRequest) {
 
     } catch (browserError) {
       console.error('Browser/PDF generation error:', browserError);
-      throw browserError;
+      
+      // Check if this is a browser launch error
+      if (browserError.message?.includes('ETXTBSY') || browserError.message?.includes('spawn')) {
+        console.error('ETXTBSY error detected - browser binary is busy in serverless environment');
+        throw new Error('PDF generation temporarily unavailable. Please try again in a moment. (Browser binary busy)');
+      } else if (browserError.message?.includes('browserType.launch')) {
+        console.error('Browser launch failed:', browserError.message);
+        throw new Error('PDF generation service unavailable. Please try again later.');
+      } else {
+        throw browserError;
+      }
     } finally {
       // Ensure browser is always closed
       if (page) {
