@@ -7,6 +7,15 @@ import { toast } from 'sonner';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import { saveAs } from 'file-saver';
 
+// Lazy load client-side PDF generation
+const loadClientPdfGenerator = async () => {
+  const [jsPDF, html2canvas] = await Promise.all([
+    import('jspdf').then(module => module.jsPDF),
+    import('html2canvas')
+  ]);
+  return { jsPDF, html2canvas: html2canvas.default };
+};
+
 interface DownloadButtonsProps {
   resumeData: ResumeFormData;
   filename?: string;
@@ -22,7 +31,7 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
     setIsDownloading(true);
 
     try {
-      console.log('Starting PDF download using Playwright...');
+      console.log('Starting PDF download using server-side generation...');
       
       // Get the HTML content from the preview element for identical rendering
       const resumeElement = document.getElementById('resume-template');
@@ -42,15 +51,39 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
 
       console.log('API Response status:', response.status);
 
+      // Handle fallback scenario
+      if (response.status === 503) {
+        const errorData = await response.json();
+        if (errorData.fallback) {
+          console.log('Server suggested fallback, using client-side PDF generation...');
+          return await generatePdfClientSide(resumeElement, filename);
+        }
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error Response:', errorText);
         
         try {
           const errorJson = JSON.parse(errorText);
+          
+          // If it's a server-side generation error, try client-side fallback
+          if (errorJson.error?.includes('serverless') || 
+              errorJson.error?.includes('temporarily unavailable') ||
+              errorJson.error?.includes('ETXTBSY')) {
+            console.log('Server-side PDF failed, attempting client-side generation...');
+            return await generatePdfClientSide(resumeElement, filename);
+          }
+          
           throw new Error(errorJson.error || `Server error: ${response.status}`);
         } catch {
-          throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
+          // Try client-side as final fallback for any server error
+          console.log('Server error encountered, attempting client-side PDF generation as fallback...');
+          try {
+            return await generatePdfClientSide(resumeElement, filename);
+          } catch (fallbackError) {
+            throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
+          }
         }
       }
 
@@ -73,6 +106,55 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       toast.error(`Failed to download PDF: ${error.message || 'Unknown error'}`);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const generatePdfClientSide = async (resumeElement: HTMLElement, filename: string) => {
+    try {
+      toast.info('Generating PDF using client-side method...');
+      
+      const { jsPDF, html2canvas } = await loadClientPdfGenerator();
+      
+      // Convert HTML to canvas
+      const canvas = await html2canvas(resumeElement, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: resumeElement.scrollWidth,
+        height: resumeElement.scrollHeight,
+      });
+      
+      // Calculate PDF dimensions (A4 size)
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Save the PDF
+      pdf.save(`${filename}.pdf`);
+      toast.success('PDF generated successfully using client-side method!');
+      
+    } catch (error) {
+      console.error('Client-side PDF generation failed:', error);
+      throw new Error('Both server-side and client-side PDF generation failed. Please try again later.');
     }
   };
 

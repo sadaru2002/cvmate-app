@@ -218,34 +218,17 @@ async function generatePDF(req: NextRequest) {
       if (!browser) {
         console.error('All browser launch attempts failed. Last error:', lastError?.message);
         
-        // Final attempt: Try with minimal configuration for Vercel
-        if (isServerless && lastError?.message?.includes('input directory')) {
-          console.log('Making final attempt with minimal Vercel configuration...');
-          try {
-            const minimalOptions = {
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process',
-                '--no-zygote',
-              ],
-              defaultViewport: { width: 1200, height: 1600 },
-              headless: true,
-              ignoreHTTPSErrors: true,
-            };
-            browser = await puppeteer.launch(minimalOptions);
-            console.log('Browser launched successfully with minimal configuration');
-          } catch (finalError) {
-            console.error('Final attempt failed:', finalError.message);
-            throw new Error('PDF generation unavailable: Vercel deployment issue with Chromium binary. Please contact support.');
-          }
-        } else if (lastError?.message?.includes('ETXTBSY') && isServerless) {
-          throw new Error('PDF generation temporarily unavailable due to serverless resource constraints. Please try again in a few moments. If the issue persists, contact support.');
-        } else {
-          throw lastError || new Error('Failed to launch browser after all retries');
+        // If serverless Chromium completely fails, return a fallback response
+        if (isServerless) {
+          console.log('Chromium launch failed in serverless environment, suggesting client-side fallback');
+          return NextResponse.json({
+            error: 'SERVER_PDF_UNAVAILABLE',
+            message: 'Server-side PDF generation temporarily unavailable. Switching to client-side generation.',
+            fallback: true
+          }, { status: 503 });
         }
+        
+        throw lastError || new Error('Failed to launch browser after all retries');
       }
 
       console.log('Creating new page...');
