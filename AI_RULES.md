@@ -11,7 +11,7 @@ This document outlines the core technologies used in the CVMate application and 
 *   **Database**: MongoDB as the NoSQL database, managed with Mongoose for schema definition and interaction.
 *   **Authentication**: NextAuth.js for secure authentication, supporting Google OAuth and custom email/password login with JWT.
 *   **AI Integration**: Google Generative AI (Gemini) for intelligent resume optimization and analytics.
-*   **PDF Generation**: Puppeteer (via `@sparticuz/chromium`) for server-side, high-fidelity PDF rendering of resumes.
+*   **PDF Generation**: Puppeteer for server-side, high-fidelity PDF rendering of resumes optimized for Render.com deployment.
 *   **HTTP Client**: Axios for making robust and interceptable API requests to the backend.
 *   **Form Management**: React Hook Form for efficient form handling and Zod for schema-based validation.
 *   **Notifications**: Sonner for elegant and user-friendly toast notifications.
@@ -44,7 +44,7 @@ To maintain a consistent and efficient development workflow, please adhere to th
 7.  **Database Interaction**:
     *   In API routes, **always** use `mongoose` models (e.g., `User`, `Resume`) for interacting with MongoDB.
 8.  **PDF Generation**:
-    *   The PDF generation logic relies on `puppeteer-core` and `@sparticuz/chromium` in the `/api/generate-pdf` route. Do not attempt alternative PDF generation methods.
+    *   The PDF generation logic relies on `puppeteer` for both `/api/generate-pdf` and `/api/generate-pdf-vector` routes, optimized for Render.com deployment. Do not attempt alternative PDF generation methods.
 9.  **AI Features**:
     *   Integrate AI functionalities using the `resumeOptimizer` service from `lib/gemini.ts`.
 10. **Notifications**:
