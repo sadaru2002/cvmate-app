@@ -40,12 +40,21 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       }
 
       try {
-        // First try vector-based PDF generation (preserves text selection and links)
-        await generatePdfVectorBased(resumeElement, filename);
+        // First try React PDF generation (pure vector PDF with perfect text selection)
+        await generatePdfReactBased(resumeData, filename);
         return;
-      } catch (vectorError) {
-        console.error('Vector PDF generation failed:', vectorError);
-        toast.info('Trying alternative PDF generation method...');
+      } catch (reactError) {
+        console.error('React PDF generation failed:', reactError);
+        toast.info('Trying vector-based PDF generation...');
+        
+        try {
+          // Fallback to vector-based PDF generation (preserves text selection and links)
+          await generatePdfVectorBased(resumeElement, filename);
+          return;
+        } catch (vectorError) {
+          console.error('Vector PDF generation failed:', vectorError);
+          toast.info('Trying server-side PDF generation...');
+        }
       }
 
       // Fallback to server-side PDF generation
@@ -368,6 +377,40 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       } catch (fallbackError) {
         throw new Error('All PDF generation methods failed. Please try again later.');
       }
+    }
+  };
+
+  const generatePdfReactBased = async (resumeData: ResumeFormData, filename: string) => {
+    try {
+      toast.info('Generating premium PDF with React PDF - perfect text selection and clickable links...');
+      
+      const response = await fetch('/api/generate-pdf-react', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          resumeData,
+          filename 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `React PDF generation failed: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error('Generated PDF is empty');
+      }
+
+      saveAs(blob, `${filename}.pdf`);
+      toast.success('Premium PDF generated! Perfect text selection, clickable links, and vector quality.');
+
+    } catch (error) {
+      console.error('React PDF generation failed:', error);
+      throw error;
     }
   };
 
