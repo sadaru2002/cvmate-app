@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
+import path from 'path'; // Import the path module
 
 export const maxDuration = 60;
 
@@ -9,11 +10,11 @@ Font.register({
   family: "Roboto",
   fonts: [
     {
-      src: "/fonts/Roboto-Regular.ttf", // Use relative path
+      src: path.join(process.cwd(), 'public', 'fonts', 'Roboto-Regular.ttf'), // Use absolute path
       fontWeight: "normal",
     },
     {
-      src: "/fonts/Roboto-Bold.ttf", // Use relative path
+      src: path.join(process.cwd(), 'public', 'fonts', 'Roboto-Bold.ttf'), // Use absolute path
       fontWeight: "bold",
     },
   ],
