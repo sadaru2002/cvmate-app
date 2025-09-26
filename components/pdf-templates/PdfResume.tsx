@@ -3,12 +3,11 @@ import { Document, Page, Text, View, StyleSheet, Font, Image as PdfImage } from 
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import { cleanUrlForDisplay } from '@/lib/utils';
 
-// Register fonts (Geist Sans and Geist Mono are not directly available via @react-pdf/renderer,
-// so we'll use standard sans-serif and monospace or provide custom font files if needed.
-// For simplicity, we'll use standard fonts for now.)
-Font.register({ family: 'Open Sans', src: 'https://fonts.gstatic.com/s/opensans/v17/mem8YaGs126MiZpBA-UFVZ0e.ttf' });
-Font.register({ family: 'Lato', src: 'https://fonts.gstatic.com/s/lato/v16/S6uyw4BMUTPHjx4wWw.ttf' });
-Font.register({ family: 'Lato Bold', src: 'https://fonts.gstatic.com/s/lato/v16/S6u9w4BMUTPHh6UVSwiPHA.ttf' });
+// Register fonts locally
+// Ensure you have Lato-Regular.ttf and Lato-Bold.ttf in your public/fonts directory
+Font.register({ family: 'Open Sans', src: 'https://fonts.gstatic.com/s/opensans/v17/mem8YaGs126MiZpBA-UFVZ0e.ttf' }); // Keeping Open Sans from URL for now
+Font.register({ family: 'Lato', src: '/fonts/Lato-Regular.ttf' });
+Font.register({ family: 'Lato Bold', src: '/fonts/Lato-Bold.ttf' });
 
 const styles = StyleSheet.create({
   page: {
