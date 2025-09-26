@@ -1,6 +1,6 @@
 {
   "functions": {
-    "app/api/generate-pdf-react/route.ts": {
+    "app/api/generate-pdf-react/route.tsx": {
       "maxDuration": 60,
       "memory": 1024
     }
