@@ -4,16 +4,16 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Register Inter font from a highly reliable CDN
+// Register Inter font from Google Fonts CDN (WOFF2 format)
 Font.register({
   family: "Inter",
   fonts: [
     {
-      src: "https://rsms.me/inter/font-files/Inter-Regular.woff", // Using a different, potentially more stable CDN
+      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
       fontWeight: "normal",
     },
     {
-      src: "https://rsms.me/inter/font-files/Inter-Bold.woff",
+      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiIJoEk-_EeA.woff2",
       fontWeight: "bold",
     },
   ],
