@@ -41,22 +41,66 @@ const styles = StyleSheet.create({
   },
 });
 
-const PDFResume = ({ data }) => (
-  React.createElement(Document, {},
+const createPDFDocument = (data) => {
+  console.log('Creating PDF document with data:', data?.personalInfo?.fullName);
+  
+  return React.createElement(Document, {},
     React.createElement(Page, { size: "A4", style: styles.page },
+      // Header section
       React.createElement(View, { style: styles.header },
         React.createElement(Text, { style: styles.name },
           data?.personalInfo?.fullName || "Your Name"
+        ),
+        React.createElement(Text, { style: styles.text },
+          data?.personalInfo?.title || "Professional Title"
+        ),
+        React.createElement(Text, { style: styles.text },
+          `Email: ${data?.personalInfo?.email || "email@example.com"}`
+        ),
+        React.createElement(Text, { style: styles.text },
+          `Phone: ${data?.personalInfo?.phone || "+1 234-567-8900"}`
         )
       ),
-      data?.professionalSummary && React.createElement(View, {},
-        React.createElement(Text, { style: styles.text },
-          data.professionalSummary
+      
+      // Professional Summary
+      data?.professionalSummary && React.createElement(View, { style: { marginBottom: 15 } },
+        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Professional Summary"),
+        React.createElement(Text, { style: styles.text }, data.professionalSummary)
+      ),
+      
+      // Work Experience
+      data?.workExperience && data.workExperience.length > 0 && React.createElement(View, { style: { marginBottom: 15 } },
+        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Work Experience"),
+        ...data.workExperience.map((job, index) =>
+          React.createElement(View, { key: index, style: { marginBottom: 10 } },
+            React.createElement(Text, { style: { ...styles.text, fontWeight: 'bold' } },
+              `${job.position} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`
+            ),
+            job.description && React.createElement(Text, { style: styles.text }, job.description)
+          )
         )
+      ),
+      
+      // Education
+      data?.education && data.education.length > 0 && React.createElement(View, { style: { marginBottom: 15 } },
+        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Education"),
+        ...data.education.map((edu, index) =>
+          React.createElement(View, { key: index, style: { marginBottom: 10 } },
+            React.createElement(Text, { style: styles.text },
+              `${edu.degree} - ${edu.institution} (${edu.startDate} - ${edu.endDate})`
+            )
+          )
+        )
+      ),
+      
+      // Skills
+      data?.skills?.technical && data.skills.technical.length > 0 && React.createElement(View, { style: { marginBottom: 15 } },
+        React.createElement(Text, { style: { ...styles.name, fontSize: 16 } }, "Technical Skills"),
+        React.createElement(Text, { style: styles.text }, data.skills.technical.join(", "))
       )
     )
-  )
-);
+  );
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -69,7 +113,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const pdfInstance = pdf(PDFResume({ data: resumeData }));
+    console.log('Generating PDF with data:', resumeData?.personalInfo?.fullName);
+
+    const pdfDocument = createPDFDocument(resumeData);
+    const pdfInstance = pdf(pdfDocument);
     const pdfBlob = await pdfInstance.toBlob();
     
     // Convert Blob to Buffer for Next.js response
