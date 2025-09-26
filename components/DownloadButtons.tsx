@@ -115,67 +115,130 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       
       const { jsPDF, html2canvas } = await loadClientPdfGenerator();
       
-      // Get the actual dimensions of the resume element
-      const rect = resumeElement.getBoundingClientRect();
+      // Create a clean clone of the resume element for PDF generation
+      const clonedElement = resumeElement.cloneNode(true) as HTMLElement;
       
-      // Convert HTML to canvas with optimized settings
-      const canvas = await html2canvas(resumeElement, {
-        scale: 1.5, // Reduced from 2 for smaller file size
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: rect.width,
-        height: rect.height,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: rect.width,
-        windowHeight: rect.height,
-        // Optimize for better quality/size ratio
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.querySelector('#resume-template');
-          if (clonedElement) {
-            // Ensure the cloned element has the same dimensions
-            (clonedElement as HTMLElement).style.width = `${rect.width}px`;
-            (clonedElement as HTMLElement).style.height = `${rect.height}px`;
-            (clonedElement as HTMLElement).style.transform = 'none';
-            (clonedElement as HTMLElement).style.position = 'relative';
-          }
+      // Create a temporary container for clean rendering
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = '210mm'; // A4 width
+      tempContainer.style.maxWidth = '210mm';
+      tempContainer.style.backgroundColor = 'white';
+      tempContainer.style.padding = '20px';
+      tempContainer.style.fontFamily = 'Arial, sans-serif';
+      tempContainer.style.fontSize = '12px';
+      tempContainer.style.lineHeight = '1.4';
+      tempContainer.style.color = '#000';
+      
+      // Apply clean styles to the cloned element
+      clonedElement.style.width = '100%';
+      clonedElement.style.maxWidth = '100%';
+      clonedElement.style.height = 'auto';
+      clonedElement.style.overflow = 'visible';
+      clonedElement.style.transform = 'none';
+      clonedElement.style.position = 'relative';
+      
+      // Fix text overlapping by adding proper spacing
+      const allElements = clonedElement.querySelectorAll('*');
+      allElements.forEach((el) => {
+        const element = el as HTMLElement;
+        element.style.position = 'relative';
+        element.style.float = 'none';
+        element.style.clear = 'both';
+        
+        // Fix specific layout issues
+        if (element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3') {
+          element.style.marginBottom = '8px';
+          element.style.marginTop = '12px';
+          element.style.lineHeight = '1.2';
         }
+        
+        if (element.tagName === 'P' || element.tagName === 'DIV') {
+          element.style.marginBottom = '4px';
+          element.style.lineHeight = '1.4';
+        }
+        
+        // Remove problematic CSS
+        element.style.position = 'relative';
+        element.style.zIndex = 'auto';
+        element.style.transform = 'none';
       });
       
-      // Calculate proper PDF dimensions
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      tempContainer.appendChild(clonedElement);
+      document.body.appendChild(tempContainer);
       
-      // Create PDF with proper orientation
-      const orientation = imgHeight > pageHeight ? 'portrait' : 'portrait';
-      const pdf = new jsPDF(orientation, 'mm', 'a4');
+      // Wait for fonts and styles to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Convert canvas to compressed image data
-      const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG with compression
-      
-      // Fit content to single page if possible
-      if (imgHeight <= pageHeight) {
-        // Content fits in one page
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-      } else {
-        // Content is too tall, scale it down to fit one page
-        const scaleFactor = pageHeight / imgHeight;
-        const scaledWidth = imgWidth * scaleFactor;
-        const scaledHeight = pageHeight;
+      try {
+        // Convert to canvas with optimized settings
+        const canvas = await html2canvas(tempContainer, {
+          scale: 1.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: tempContainer.offsetWidth,
+          height: tempContainer.offsetHeight,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0,
+          removeContainer: false,
+          imageTimeout: 15000,
+          logging: false,
+          onclone: (clonedDoc) => {
+            // Ensure all text is visible in the clone
+            const clonedElements = clonedDoc.querySelectorAll('*');
+            clonedElements.forEach((el) => {
+              const element = el as HTMLElement;
+              element.style.visibility = 'visible';
+              element.style.opacity = '1';
+              element.style.display = element.style.display === 'none' ? 'block' : element.style.display;
+            });
+          }
+        });
         
-        // Center the scaled image
-        const xOffset = (imgWidth - scaledWidth) / 2;
+        // Create PDF with proper dimensions
+        const pdf = new jsPDF('portrait', 'mm', 'a4');
+        const pageWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const margin = 10; // 10mm margin
+        const contentWidth = pageWidth - (margin * 2);
+        const contentHeight = pageHeight - (margin * 2);
         
-        pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, scaledHeight);
+        // Calculate scaling to fit content
+        const canvasRatio = canvas.height / canvas.width;
+        const contentRatio = contentHeight / contentWidth;
+        
+        let finalWidth = contentWidth;
+        let finalHeight = contentWidth * canvasRatio;
+        
+        // If content is too tall, scale it down
+        if (finalHeight > contentHeight) {
+          finalHeight = contentHeight;
+          finalWidth = contentHeight / canvasRatio;
+        }
+        
+        // Center the content
+        const xOffset = margin + (contentWidth - finalWidth) / 2;
+        const yOffset = margin + (contentHeight - finalHeight) / 2;
+        
+        // Convert to JPEG for smaller file size
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        
+        // Add image to PDF
+        pdf.addImage(imgData, 'JPEG', xOffset, yOffset, finalWidth, finalHeight);
+        
+        // Save the PDF
+        pdf.save(`${filename}.pdf`);
+        toast.success('PDF generated successfully using client-side method!');
+        
+      } finally {
+        // Clean up temporary element
+        document.body.removeChild(tempContainer);
       }
-      
-      // Save the PDF
-      pdf.save(`${filename}.pdf`);
-      toast.success('PDF generated successfully using client-side method!');
       
     } catch (error) {
       console.error('Client-side PDF generation failed:', error);

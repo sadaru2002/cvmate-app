@@ -50,41 +50,119 @@ async function generatePDF(req: NextRequest) {
       @tailwind components;
       @tailwind utilities;
       
-      /* Critical styles for PDF generation */
+      /* Reset and base styles */
       * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
       
       body {
         margin: 0;
+        padding: 20px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
           "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
           sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        line-height: 1.4;
+        color: #000;
+        background: white;
       }
       
-      /* PDF-specific optimizations */
+      /* PDF-specific layout fixes */
       #resume-template {
-        max-height: 100vh !important;
-        overflow: hidden !important;
-        page-break-inside: avoid !important;
-        transform-origin: top left;
-        width: 210mm !important;
-        min-height: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        position: relative !important;
+        transform: none !important;
+        float: none !important;
+        clear: both !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       
-      /* Prevent content overflow */
-      .resume-section {
+      /* Fix text overlapping and positioning */
+      #resume-template * {
+        position: relative !important;
+        float: none !important;
+        clear: both !important;
+        z-index: auto !important;
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      /* Proper spacing for sections */
+      .resume-section,
+      .mb-6, .mb-4, .mb-2 {
+        margin-bottom: 16px !important;
         page-break-inside: avoid;
-        margin-bottom: 0.5rem;
       }
       
-      /* Optimize text for PDF */
+      /* Headings */
+      h1, h2, h3, h4, h5, h6 {
+        margin-bottom: 8px !important;
+        margin-top: 12px !important;
+        line-height: 1.2 !important;
+        font-weight: bold !important;
+        display: block !important;
+      }
+      
+      h1 { font-size: 24px !important; }
+      h2 { font-size: 20px !important; }
+      h3 { font-size: 16px !important; }
+      
+      /* Paragraphs and text */
       p, div, span {
-        text-overflow: ellipsis;
-        word-wrap: break-word;
-        hyphens: auto;
+        line-height: 1.4 !important;
+        margin-bottom: 4px !important;
+        word-wrap: break-word !important;
+        hyphens: auto !important;
+        display: block !important;
+      }
+      
+      /* Lists */
+      ul, ol {
+        margin-left: 20px !important;
+        margin-bottom: 8px !important;
+      }
+      
+      li {
+        margin-bottom: 2px !important;
+        line-height: 1.4 !important;
+      }
+      
+      /* Contact info and details */
+      .contact-info * {
+        display: inline-block !important;
+        margin-right: 12px !important;
+      }
+      
+      /* Skills and tags */
+      .skills-container > * {
+        display: inline-block !important;
+        margin-right: 8px !important;
+        margin-bottom: 4px !important;
+      }
+      
+      /* Fix flexbox and grid layouts */
+      .flex, .grid {
+        display: block !important;
+      }
+      
+      .flex > *, .grid > * {
+        display: block !important;
+        margin-bottom: 8px !important;
+      }
+      
+      /* Ensure visibility */
+      * {
+        visibility: visible !important;
+        opacity: 1 !important;
       }
       
       @media print {
@@ -103,10 +181,8 @@ async function generatePDF(req: NextRequest) {
         }
         
         #resume-template {
-          max-height: none !important;
-          height: auto !important;
-          transform: scale(0.95);
-          transform-origin: top left;
+          transform: none !important;
+          page-break-inside: avoid !important;
         }
       }
     `;
@@ -275,6 +351,22 @@ async function generatePDF(req: NextRequest) {
       await page.setContent(fullHtml, { 
         waitUntil: 'networkidle0',
         timeout: 30000 
+      });
+      
+      // Wait additional time for fonts and rendering to complete
+      console.log('Waiting for rendering to complete...');
+      await page.waitForTimeout(2000);
+      
+      // Add CSS to fix any remaining layout issues
+      await page.addStyleTag({
+        content: `
+          body { zoom: 1 !important; }
+          * { 
+            visibility: visible !important; 
+            opacity: 1 !important;
+            position: relative !important;
+          }
+        `
       });
 
       console.log('Generating PDF...');
