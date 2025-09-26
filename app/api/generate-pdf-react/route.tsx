@@ -4,40 +4,41 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Temporarily disable custom font registration for testing with Helvetica
-// let fontsReady = false;
-// (async () => {
-//   try {
-//     Font.register({
-//       family: 'Roboto',
-//       fonts: [
-//         {
-//           src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
-//           fontWeight: 'normal',
-//         },
-//         {
-//           src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
-//           fontWeight: 'bold',
-//         },
-//       ],
-//     });
-//     console.log('Fonts registered successfully from CDN.');
-//     fontsReady = true;
-//   } catch (error) {
-//     console.error('Error during initial font loading and registration from CDN:', error);
-//     Font.register({ family: "Roboto", src: "data:font/ttf;base64," });
-//     fontsReady = false;
-//   }
-// })();
+// Register Roboto font using CDN-hosted WOFF2 files
+let fontsReady = false;
+(async () => {
+  try {
+    Font.register({
+      family: 'Roboto',
+      fonts: [
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
+          fontWeight: 'normal',
+        },
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
+          fontWeight: 'bold',
+        },
+      ],
+    });
+    console.log('Fonts registered successfully from CDN.');
+    fontsReady = true;
+  } catch (error) {
+    console.error('Error during initial font loading and registration from CDN:', error);
+    // Fallback to default fonts if custom font loading fails
+    Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
+    fontsReady = false;
+  }
+})();
 
 
-// Styles are now created dynamically, forcing Helvetica for this test
+// Styles are now created dynamically based on font availability
 const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: "Helvetica", // FORCING HELVETICA FOR TESTING
+    fontFamily: useSystemFonts ? "Helvetica" : "Roboto", // Conditional font family
     fontSize: 11,
     color: "#333333",
   },
@@ -81,7 +82,7 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
 
 const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
-  console.log('createPDFDocument: Using system fonts (forced Helvetica for test):', useSystemFonts);
+  console.log('createPDFDocument: Using system fonts:', useSystemFonts);
 
   const styles = createStyles(useSystemFonts); // Create styles dynamically
 
@@ -99,18 +100,18 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
       <Page size="A4" style={styles.page}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.name}>{personalInfo.fullName || "Your Name"}</Text>
-          <Text style={styles.text}>{personalInfo.designation || "Professional Title"}</Text>
-          <Text style={styles.text}>Email: {personalInfo.email || "email@example.com"}</Text>
-          <Text style={styles.text}>Phone: {personalInfo.phone || "+1 234-567-8900"}</Text>
-          {personalInfo.location && <Text style={styles.text}>Location: {personalInfo.location}</Text>}
+          <Text style={styles.name}>{personalInfo.fullName ?? "Your Name"}</Text>
+          <Text style={styles.text}>{personalInfo.designation ?? "Professional Title"}</Text>
+          <Text style={styles.text}>Email: {personalInfo.email ?? "email@example.com"}</Text>
+          <Text style={styles.text}>Phone: {personalInfo.phone ?? "+1 234-567-8900"}</Text>
+          {personalInfo.location && <Text style={styles.text}>Location: {personalInfo.location ?? ''}</Text>}
         </View>
 
         {/* Professional Summary */}
         {professionalSummary && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Professional Summary</Text>
-            <Text style={styles.text}>{professionalSummary}</Text>
+            <Text style={styles.text}>{professionalSummary ?? ''}</Text>
           </View>
         )}
 
@@ -121,9 +122,9 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             {workExperience.map((job: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={{ ...styles.text, fontWeight: 'bold' }}>
-                  {`${job.role} at ${job.company} (${job.startDate} - ${job.endDate || "Present"})`}
+                  {`${job.role ?? ''}${job.company ? ` at ${job.company ?? ''}` : ''} (${job.startDate ?? ''} - ${job.endDate ?? 'Present'})`}
                 </Text>
-                {job.description && <Text style={styles.text}>{job.description}</Text>}
+                {job.description && <Text style={styles.text}>{job.description ?? ''}</Text>}
               </View>
             ))}
           </View>
@@ -136,7 +137,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             {education.map((edu: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${edu.degree} - ${edu.institution} (${edu.startDate} - ${edu.endDate})`}
+                  {`${edu.degree ?? ''} - ${edu.institution ?? ''} (${edu.startDate ?? ''} - ${edu.endDate ?? ''})`}
                 </Text>
               </View>
             ))}
@@ -147,7 +148,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
         {skills.length > 0 && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Technical Skills</Text>
-            <Text style={styles.text}>{skills.join(", ")}</Text>
+            <Text style={styles.text}>{skills.join(", ") ?? ''}</Text>
           </View>
         )}
 
@@ -157,10 +158,10 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             <Text style={styles.sectionTitle}>Projects</Text>
             {projects.map((project: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={{ ...styles.text, fontWeight: 'bold' }}>{project.title}</Text>
-                {project.description && <Text style={styles.text}>{project.description}</Text>}
-                {project.LiveDemo && <Link src={project.LiveDemo} style={styles.link}>Live Demo</Link>}
-                {project.github && <Link src={project.github} style={styles.link}>GitHub</Link>}
+                <Text style={{ ...styles.text, fontWeight: 'bold' }}>{project.title ?? ''}</Text>
+                {project.description && <Text style={styles.text}>{project.description ?? ''}</Text>}
+                {project.LiveDemo && <Link src={project.LiveDemo ?? ''} style={styles.link}>Live Demo</Link>}
+                {project.github && <Link src={project.github ?? ''} style={styles.link}>GitHub</Link>}
               </View>
             ))}
           </View>
@@ -173,7 +174,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             {certifications.map((cert: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${cert.title} by ${cert.issuer} (${cert.year})`}
+                  {`${cert.title ?? ''} by ${cert.issuer ?? ''} (${cert.year ?? ''})`}
                 </Text>
               </View>
             ))}
@@ -200,12 +201,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // The fontsReady flag is set asynchronously at module load.
-    // We use its current state to decide if system fonts are needed.
-    // For this test, fontsReady is effectively false as custom fonts are commented out.
-    const useSystemFonts = true; // Always use system fonts for this diagnostic step
-
-    console.log(`Fonts loaded successfully: ${!useSystemFonts} (using Helvetica)`);
+    // Determine if system fonts should be used based on the fontsReady flag
+    const useSystemFonts = !fontsReady;
+    console.log(`Fonts loaded successfully: ${fontsReady} (using ${useSystemFonts ? 'Helvetica' : 'Roboto'})`);
 
     // Ensure all necessary data is present for the PDF component
     const fullResumeData = {
@@ -213,7 +211,6 @@ export async function POST(req: NextRequest) {
       professionalSummary: resumeData.profileInfo?.summary,
       workExperiences: resumeData.workExperiences,
       education: resumeData.education,
-      // Filter out any undefined skill names before passing to PDF document
       skills: { technical: resumeData.skills?.map((s: any) => s.name).filter(Boolean) },
       projects: resumeData.projects,
       certifications: resumeData.certifications,
@@ -222,7 +219,7 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('API: Calling createPDFDocument with processed data.');
-    const pdfDocument = createPDFDocument(fullResumeData, useSystemFonts); // Pass useSystemFonts flag
+    const pdfDocument = createPDFDocument(fullResumeData, useSystemFonts);
     console.log('API: PDF Document created. Attempting to buffer...');
     const pdfInstance = pdf(pdfDocument);
     const pdfBuffer = await pdfInstance.toBuffer();
