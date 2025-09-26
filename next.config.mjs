@@ -17,15 +17,14 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push(
-        // Exclude playwright-core and its internal dependencies
-        'playwright-core', 
-        'playwright', // Include 'playwright' as well, just in case
-        'chromium-bidi', // Specific problematic internal dependency
-        'electron', // Another problematic internal dependency
-        // Keep playwright-aws-lambda external as it's a serverless-specific dependency
-        'playwright-aws-lambda',
-        // Also ensure mongodb is externalized if it's causing issues
-        'mongodb'
+        // Use a regex to match any module starting with playwright-core or chromium-bidi
+        // This should catch all internal dependencies as well.
+        /^playwright-core(\/.*)?$/,
+        /^chromium-bidi(\/.*)?$/,
+        'playwright', // Also exclude the main 'playwright' package
+        'playwright-aws-lambda', // Keep this external
+        'electron', // Exclude electron
+        'mongodb' // Exclude mongodb
       );
     }
     return config;

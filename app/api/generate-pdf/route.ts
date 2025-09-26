@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { launchChromium } from 'playwright-aws-lambda'; // For Vercel production
-// import * as playwright from 'playwright-core'; // Removed direct import
+import { launchChromium } from 'playwright-aws-lambda';
 
 export async function POST(req: NextRequest) {
   let browser = null;
@@ -17,31 +16,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing html or css' }, { status: 400 });
     }
 
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    if (isDevelopment) {
-      console.log('Development mode - Dynamically importing local Playwright Chromium');
-      // Dynamically import playwright-core only in development
-      const playwright = await import('playwright-core');
-      browser = await playwright.chromium.launch({
-        headless: true,
-        // You might need to specify executablePath for local dev if Playwright can't find it
-        // For example: executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' on macOS
-        // Playwright usually handles this automatically if Chrome/Chromium is installed.
-      });
-    } else {
-      console.log('Production mode - Launching playwright-aws-lambda Chromium');
-      browser = await launchChromium({
-        headless: true, // Always headless in serverless
-      });
-    }
+    console.log('Launching Chromium...');
+    // Use playwright-aws-lambda for both development and production
+    // Add --no-sandbox and --disable-setuid-sandbox arguments for serverless environments
+    browser = await launchChromium({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
 
     console.log('Browser launched successfully');
 
     const page = await browser.newPage();
     
     // Emulate print media type
-    await page.emulateMedia({ media: 'print' }); // Playwright equivalent
+    await page.emulateMedia({ media: 'print' });
 
     // Set viewport to A4 size
     await page.setViewportSize({ 
