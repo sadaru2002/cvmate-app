@@ -4,16 +4,16 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Register Roboto font using TTF format for better compatibility
+// Register Roboto font using local TTF files for better compatibility
 Font.register({
   family: "Roboto",
   fonts: [
     {
-      src: "https://fonts.gstatic.com/s/roboto/v20/KFOmCnqEu92Fr1Mu4mxK.ttf", // Roboto Regular TTF
+      src: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/fonts/Roboto-Regular.ttf`, // Local Roboto Regular TTF
       fontWeight: "normal",
     },
     {
-      src: "https://fonts.gstatic.com/s/roboto/v20/KFOlCnqEu92Fr1MmWUlfBBc4.ttf", // Roboto Bold TTF
+      src: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/fonts/Roboto-Bold.ttf`, // Local Roboto Bold TTF
       fontWeight: "bold",
     },
   ],
