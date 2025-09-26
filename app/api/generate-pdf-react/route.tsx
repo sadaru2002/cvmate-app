@@ -4,10 +4,15 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Font registration with multiple fallbacks
-const initializeFonts = async () => {
-  const fontConfigs = [
-    {
+// Register fonts at module level (runs once when module loads)
+let fontsRegistered = false;
+let fontRegistrationSuccess = false;
+
+const registerFonts = () => {
+  if (fontsRegistered) return fontRegistrationSuccess;
+  
+  try {
+    Font.register({
       family: 'Roboto',
       fonts: [
         {
@@ -19,30 +24,29 @@ const initializeFonts = async () => {
           fontWeight: 'bold',
         },
       ],
-    },
-  ];
-
-  const registrationPromises = fontConfigs.map(async (config) => {
-    try {
-      Font.register(config);
-      return { family: config.family, success: true };
-    } catch (error) {
-      console.error(`Failed to register ${config.family}:`, error);
-      return { family: config.family, success: false };
-    }
-  });
-
-  const results = await Promise.all(registrationPromises);
-  return results.every(result => result.success);
+    });
+    
+    console.log('Roboto font registered successfully');
+    fontRegistrationSuccess = true;
+  } catch (error) {
+    console.error('Failed to register Roboto font:', error);
+    fontRegistrationSuccess = false;
+  }
+  
+  fontsRegistered = true;
+  return fontRegistrationSuccess;
 };
 
-// Styles are now created dynamically based on font availability
+// Register fonts immediately when module loads
+registerFonts();
+
+// Rest of your code remains the same...
 const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: useSystemFonts ? "Helvetica" : "Roboto", // Conditional font family
+    fontFamily: useSystemFonts ? "Helvetica" : "Roboto",
     fontSize: 11,
     color: "#333333",
   },
@@ -85,14 +89,13 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
 });
 
 const createPDFDocument = (data: any, useSystemFonts: boolean) => {
-  console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
   console.log('createPDFDocument: Using system fonts:', useSystemFonts);
 
-  const styles = createStyles(useSystemFonts); // Create styles dynamically
+  const styles = createStyles(useSystemFonts);
 
   const personalInfo = data?.personalInfo || {};
   const professionalSummary = data?.professionalSummary;
-  const workExperience = data?.workExperiences || []; // Corrected key
+  const workExperience = data?.workExperiences || [];
   const education = data?.education || [];
   const skills = data?.skills?.technical || [];
   const projects = data?.projects || [];
@@ -204,9 +207,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Initialize fonts
-    const fontsReady = await initializeFonts();
-    console.log(`Fonts loaded successfully: ${fontsReady}`);
+    // Check if fonts were registered successfully
+    console.log(`Fonts loaded successfully: ${fontRegistrationSuccess}`);
 
     // Ensure all necessary data is present for the PDF component
     const fullResumeData = {
@@ -214,7 +216,7 @@ export async function POST(req: NextRequest) {
       professionalSummary: resumeData.profileInfo?.summary,
       workExperiences: resumeData.workExperiences,
       education: resumeData.education,
-      skills: { technical: resumeData.skills?.map((s: any) => s.name) }, // Map skills to simple array
+      skills: { technical: resumeData.skills?.map((s: any) => s.name) },
       projects: resumeData.projects,
       certifications: resumeData.certifications,
       languages: resumeData.languages,
@@ -222,7 +224,7 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('API: Calling createPDFDocument with processed data.');
-    const pdfDocument = createPDFDocument(fullResumeData, !fontsReady); // Pass useSystemFonts flag
+    const pdfDocument = createPDFDocument(fullResumeData, !fontRegistrationSuccess);
     console.log('API: PDF Document created. Attempting to buffer...');
     const pdfInstance = pdf(pdfDocument);
     const pdfBuffer = await pdfInstance.toBuffer();
@@ -242,14 +244,14 @@ export async function POST(req: NextRequest) {
     console.error("API: Error details:", error?.message);
     console.error("API: Error stack:", error?.stack);
     
-    // Fallback: try with system fonts only if the initial attempt failed due to font issues
-    // This part of the fallback is already handled by the `!fontsReady` flag passed to `createPDFDocument`
-    // and the dynamic `createStyles` function. If the error is not font-related,
-    // re-attempting with system fonts won't fix it.
-    return NextResponse.json({
-      success: false,
-      error: "Failed to generate PDF",
-      details: error?.message || "Unknown error"
-    }, { status: 500 });
-  }
-}
+    // Final fallback: try with system fonts only
+    try {
+      console.log('API: Attempting fallback with system fonts only...');
+      const { resumeData, filename = "resume" } = await req.json();
+      
+      const fullResumeData = {
+        personalInfo: resumeData.profileInfo,
+        professionalSummary: resumeData.profileInfo?.summary,
+        workExperiences: resumeData.workExperiences,
+        education: resumeData.education,
+        skills: { technical: resumeData.skills?.map((s: any) => s.name) },
