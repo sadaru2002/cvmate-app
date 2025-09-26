@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export class ResumeOptimizationService {
-  private model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" }); // Changed model to gemini-1.0-pro
+  private model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Changed model to gemini-pro
 
   async analyzeResumeForJob(resumeData: any, jobDescription: string) {
     const prompt = `

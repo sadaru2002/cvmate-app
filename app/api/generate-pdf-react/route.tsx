@@ -9,11 +9,11 @@ Font.register({
   family: "Roboto",
   fonts: [
     {
-      src: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/fonts/Roboto-Regular.ttf`, // Local Roboto Regular TTF
+      src: "/fonts/Roboto-Regular.ttf", // Use relative path
       fontWeight: "normal",
     },
     {
-      src: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/fonts/Roboto-Bold.ttf`, // Local Roboto Bold TTF
+      src: "/fonts/Roboto-Bold.ttf", // Use relative path
       fontWeight: "bold",
     },
   ],
