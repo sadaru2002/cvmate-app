@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export const maxDuration = 60; // Allow up to 60 seconds for PDF generation
 
@@ -206,23 +207,66 @@ export async function POST(req: NextRequest) {
       </html>
     `;
 
-    // Configure Puppeteer for Render.com deployment
-    console.log('Launching browser for Render.com...');
+    // Configure Puppeteer for both development and production
+    let browser;
     
-    const browser = await puppeteer.launch({
-      headless: true,
-      defaultViewport: { width: 1200, height: 1600 },
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ]
-    });
+    if (process.env.NODE_ENV === 'production') {
+      // Production: Use @sparticuz/chromium
+      browser = await puppeteer.launch({
+        args: [...chromium.args, '--disable-dev-shm-usage'],
+        defaultViewport: { width: 1200, height: 1600 },
+        executablePath: await chromium.executablePath(),
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      // Development: Use regular puppeteer with local Chrome
+      try {
+        const puppeteerRegular = await import('puppeteer');
+        browser = await puppeteerRegular.default.launch({
+          headless: true,
+          defaultViewport: { width: 1200, height: 1600 },
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          ignoreHTTPSErrors: true,
+        });
+      } catch (devError) {
+        console.log('Regular puppeteer not available, trying puppeteer-core with manual Chrome path...');
+        
+        // Fallback to puppeteer-core with manual Chrome paths
+        const possiblePaths = [
+          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+          '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+          '/usr/bin/google-chrome',
+          '/usr/bin/chromium-browser'
+        ];
+        
+        let executablePath = null;
+        for (const path of possiblePaths) {
+          try {
+            const fs = require('fs');
+            if (fs.existsSync(path)) {
+              executablePath = path;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        if (!executablePath) {
+          throw new Error('Chrome/Chromium not found. Please install Google Chrome or set CHROME_EXECUTABLE_PATH environment variable.');
+        }
+        
+        browser = await puppeteer.launch({
+          executablePath,
+          headless: true,
+          defaultViewport: { width: 1200, height: 1600 },
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          ignoreHTTPSErrors: true,
+        });
+      }
+    }
 
     console.log('Browser launched successfully');
 
@@ -260,7 +304,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`PDF generated successfully. Size: ${pdfBuffer.length} bytes`);
 
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
