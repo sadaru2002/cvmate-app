@@ -13,6 +13,7 @@ const nextConfig = {
   experimental: {
     serverExternalPackages: [
       'playwright-aws-lambda',
+      'playwright-core', // Explicitly externalize playwright-core
       // Add other packages here if they cause bundling issues on Vercel
     ],
   },
