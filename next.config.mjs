@@ -18,6 +18,14 @@ const nextConfig = {
         'playwright-core',
         'chromium-bidi',
         'electron',
+        // MongoDB related externals for serverless deployment
+        'aws4',
+        '@aws-sdk/credential-providers',
+        'mongodb-client-encryption',
+        'snappy',
+        'kerberos',
+        '@mongodb-js/zstd',
+        'bson-ext',
       ];
     }
     // Ignore binary files
