@@ -1,43 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
-import path from 'path';
-import fs from 'fs/promises';
 
 export const maxDuration = 60;
 
-// Function to load font file and return as a base64 data URL
-const loadFontAsDataUrl = async (fontPath: string) => {
-  try {
-    const absolutePath = path.join(process.cwd(), 'public', 'fonts', fontPath);
-    const fontBuffer = await fs.readFile(absolutePath);
-    return `data:font/ttf;base64,${fontBuffer.toString('base64')}`;
-  } catch (error) {
-    console.error(`Failed to load font as Data URL: ${fontPath}`, error);
-    throw new Error(`Failed to load font as Data URL: ${fontPath}`);
-  }
-};
-
-// Register Roboto font using local TTF files loaded as base64 data URLs
+// Register Roboto font using CDN-hosted WOFF2 files
 let fontsReady = false;
 (async () => {
   try {
-    const robotoRegularDataUrl = await loadFontAsDataUrl('Roboto-Regular.ttf');
-    const robotoBoldDataUrl = await loadFontAsDataUrl('Roboto-Bold.ttf');
-
-    if (robotoRegularDataUrl && robotoBoldDataUrl) {
-      Font.register({
-        family: "Roboto",
-        fonts: [
-          { src: robotoRegularDataUrl, fontWeight: "normal" },
-          { src: robotoBoldDataUrl, fontWeight: "bold" },
-        ],
-      });
-      console.log('Fonts registered successfully with local TTF Data URLs.');
-      fontsReady = true;
-    }
+    Font.register({
+      family: 'Roboto',
+      fonts: [
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
+          fontWeight: 'normal',
+        },
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
+          fontWeight: 'bold',
+        },
+      ],
+    });
+    console.log('Fonts registered successfully from CDN.');
+    fontsReady = true;
   } catch (error) {
-    console.error('Error during initial font loading and registration:', error);
+    console.error('Error during initial font loading and registration from CDN:', error);
     // Fallback to default fonts if custom font loading fails
     Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
     fontsReady = false;
@@ -113,7 +100,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
         {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.name}>{personalInfo.fullName || "Your Name"}</Text>
-          <Text style={styles.text}>{personalInfo.designation || "Professional Title"}</Text> {/* Corrected to use designation */}
+          <Text style={styles.text}>{personalInfo.designation || "Professional Title"}</Text>
           <Text style={styles.text}>Email: {personalInfo.email || "email@example.com"}</Text>
           <Text style={styles.text}>Phone: {personalInfo.phone || "+1 234-567-8900"}</Text>
           {personalInfo.location && <Text style={styles.text}>Location: {personalInfo.location}</Text>}
