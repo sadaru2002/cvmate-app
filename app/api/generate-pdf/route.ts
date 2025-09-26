@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import playwright from 'playwright-aws-lambda';
+import { launchChromium } from 'playwright-aws-lambda';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 </html>`;
 
     // Generate PDF using Playwright
-    const browser = await playwright.launchChromium({
+    const browser = await launchChromium({
       headless: true,
     });
 
