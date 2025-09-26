@@ -128,10 +128,17 @@ async function generatePDF(req: NextRequest) {
             ],
             defaultViewport: { width: 1200, height: 1600 },
             executablePath: isServerless 
-              ? await chromium.executablePath() 
+              ? await chromium.executablePath({
+                  cacheDir: '/tmp/.chromium',
+                }) 
               : undefined, // Let puppeteer find Chrome locally
             headless: true,
             ignoreHTTPSErrors: true,
+            // Additional Vercel-specific options
+            ...(isServerless && {
+              pipe: true,
+              dumpio: false,
+            }),
           };
           
           browser = await puppeteer.launch(launchOptions);
@@ -150,6 +157,45 @@ async function generatePDF(req: NextRequest) {
               console.log('Forced garbage collection');
             } catch (e) {
               // Ignore gc errors
+            }
+          }
+          
+          // Special handling for Vercel/serverless path errors
+          if (error.message?.includes('input directory') || error.message?.includes('pnpm') || error.message?.includes('node_modules')) {
+            console.log('Detected Vercel file system error, trying alternative path...');
+            
+            // Try with alternative chromium configuration
+            try {
+              const altLaunchOptions = {
+                args: isServerless ? [
+                  ...chromium.args,
+                  '--no-sandbox',
+                  '--disable-setuid-sandbox',
+                  '--disable-dev-shm-usage',
+                  '--disable-gpu',
+                  '--single-process',
+                  '--no-zygote',
+                  '--disable-web-security',
+                ] : [
+                  '--no-sandbox',
+                  '--disable-setuid-sandbox'
+                ],
+                defaultViewport: { width: 1200, height: 1600 },
+                executablePath: isServerless 
+                  ? await chromium.executablePath('/tmp')
+                  : undefined,
+                headless: true,
+                ignoreHTTPSErrors: true,
+                ...(isServerless && {
+                  pipe: true,
+                  dumpio: false,
+                }),
+              };
+              browser = await puppeteer.launch(altLaunchOptions);
+              console.log('Browser launched successfully with alternative path');
+              break;
+            } catch (altError) {
+              console.error('Alternative path also failed:', altError.message);
             }
           }
           
@@ -172,12 +218,34 @@ async function generatePDF(req: NextRequest) {
       if (!browser) {
         console.error('All browser launch attempts failed. Last error:', lastError?.message);
         
-        // If this is a serverless ETXTBSY error, provide specific guidance
-        if (lastError?.message?.includes('ETXTBSY') && isServerless) {
+        // Final attempt: Try with minimal configuration for Vercel
+        if (isServerless && lastError?.message?.includes('input directory')) {
+          console.log('Making final attempt with minimal Vercel configuration...');
+          try {
+            const minimalOptions = {
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process',
+                '--no-zygote',
+              ],
+              defaultViewport: { width: 1200, height: 1600 },
+              headless: true,
+              ignoreHTTPSErrors: true,
+            };
+            browser = await puppeteer.launch(minimalOptions);
+            console.log('Browser launched successfully with minimal configuration');
+          } catch (finalError) {
+            console.error('Final attempt failed:', finalError.message);
+            throw new Error('PDF generation unavailable: Vercel deployment issue with Chromium binary. Please contact support.');
+          }
+        } else if (lastError?.message?.includes('ETXTBSY') && isServerless) {
           throw new Error('PDF generation temporarily unavailable due to serverless resource constraints. Please try again in a few moments. If the issue persists, contact support.');
+        } else {
+          throw lastError || new Error('Failed to launch browser after all retries');
         }
-        
-        throw lastError || new Error('Failed to launch browser after all retries');
       }
 
       console.log('Creating new page...');
