@@ -180,6 +180,87 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   );
 };
 
+// Alternative simple PDF generation for Vercel troubleshooting
+const createSimplePDF = async (resumeData: any): Promise<Buffer> => {
+  console.log('🔄 Creating simple PDF with minimal components');
+  
+  const SimpleDocument = () => (
+    <Document>
+      <Page size="A4" style={{
+        flexDirection: 'column',
+        backgroundColor: '#ffffff',
+        padding: 30,
+        fontFamily: 'Helvetica',
+        fontSize: 11,
+        color: '#333333',
+      }}>
+        <View style={{ marginBottom: 20, paddingBottom: 15 }}>
+          <Text style={{ fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 5 }}>
+            {resumeData?.profileInfo?.fullName || resumeData?.personalInfo?.fullName || 'Resume'}
+          </Text>
+          <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 5 }}>
+            {resumeData?.profileInfo?.designation || resumeData?.personalInfo?.designation || 'Professional'}
+          </Text>
+          <Text style={{ fontSize: 11, color: '#4b5563', marginBottom: 3 }}>
+            Email: {resumeData?.profileInfo?.email || resumeData?.personalInfo?.email || 'email@example.com'}
+          </Text>
+          <Text style={{ fontSize: 11, color: '#4b5563' }}>
+            Phone: {resumeData?.profileInfo?.phone || resumeData?.personalInfo?.phone || '+1234567890'}
+          </Text>
+        </View>
+        
+        {(resumeData?.profileInfo?.summary || resumeData?.professionalSummary) && (
+          <View style={{ marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 10 }}>
+              Professional Summary
+            </Text>
+            <Text style={{ fontSize: 11, color: '#4b5563', lineHeight: 1.4 }}>
+              {resumeData?.profileInfo?.summary || resumeData?.professionalSummary}
+            </Text>
+          </View>
+        )}
+        
+        {resumeData?.skills?.length > 0 && (
+          <View style={{ marginBottom: 15 }}>
+            <Text style={{ fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 10 }}>
+              Skills
+            </Text>
+            <Text style={{ fontSize: 11, color: '#4b5563' }}>
+              {resumeData.skills.map((s: any) => s?.name || s).filter(Boolean).join(', ')}
+            </Text>
+          </View>
+        )}
+      </Page>
+    </Document>
+  );
+
+  try {
+    const pdfInstance = pdf(<SimpleDocument />);
+    const result = await pdfInstance.toBuffer();
+    
+    // Handle the result the same way as the main function
+    let buffer: Buffer;
+    if (Buffer.isBuffer(result)) {
+      buffer = result;
+    } else if (result instanceof Uint8Array) {
+      buffer = Buffer.from(result);
+    } else if (result && typeof result === 'object') {
+      // Try to extract buffer from object
+      const data = (result as any).data || (result as any).buffer || result;
+      buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    } else {
+      buffer = Buffer.from(result as any);
+    }
+    
+    console.log(`✅ Simple PDF created: ${buffer.length} bytes`);
+    return buffer;
+    
+  } catch (error: any) {
+    console.error('❌ Simple PDF creation failed:', error);
+    throw error;
+  }
+};
+
 const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttempts = 2): Promise<Buffer> => {
   let lastError: Error | null = null;
   
@@ -231,12 +312,56 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       console.log('PDF instance created successfully');
       
       // Reduced timeout for Vercel
-      const pdfBuffer = await Promise.race([
+      const pdfResult = await Promise.race([
         pdfInstance.toBuffer(),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('PDF generation timeout after 25 seconds')), 25000)
         )
-      ]) as Buffer;
+      ]);
+
+      console.log('PDF result type:', typeof pdfResult);
+      console.log('PDF result constructor:', pdfResult?.constructor?.name);
+
+      // Handle different buffer types that might be returned in Vercel
+      let pdfBuffer: Buffer;
+      
+      if (Buffer.isBuffer(pdfResult)) {
+        pdfBuffer = pdfResult;
+        console.log('Direct Buffer received');
+      } else if (pdfResult instanceof Uint8Array) {
+        pdfBuffer = Buffer.from(pdfResult);
+        console.log('Uint8Array converted to Buffer');
+      } else if (pdfResult && typeof pdfResult === 'object' && 'data' in pdfResult) {
+        // Handle case where result has a 'data' property containing the buffer
+        const data = (pdfResult as any).data;
+        if (Buffer.isBuffer(data)) {
+          pdfBuffer = data;
+        } else if (data instanceof Uint8Array) {
+          pdfBuffer = Buffer.from(data);
+        } else if (Array.isArray(data)) {
+          pdfBuffer = Buffer.from(data);
+        } else {
+          throw new Error(`Unsupported data type in PDF result: ${typeof data}`);
+        }
+        console.log('Extracted buffer from result.data');
+      } else if (pdfResult && typeof pdfResult === 'object' && 'buffer' in pdfResult) {
+        // Handle case where result has a 'buffer' property
+        const buffer = (pdfResult as any).buffer;
+        if (Buffer.isBuffer(buffer)) {
+          pdfBuffer = buffer;
+        } else if (buffer instanceof Uint8Array) {
+          pdfBuffer = Buffer.from(buffer);
+        } else {
+          throw new Error(`Unsupported buffer type: ${typeof buffer}`);
+        }
+        console.log('Extracted buffer from result.buffer');
+      } else if (Array.isArray(pdfResult)) {
+        pdfBuffer = Buffer.from(pdfResult);
+        console.log('Array converted to Buffer');
+      } else {
+        console.error('Unexpected PDF result structure:', pdfResult);
+        throw new Error(`Invalid buffer type: ${typeof pdfResult}, constructor: ${pdfResult?.constructor?.name}`);
+      }
 
       console.log('PDF buffer generated, validating...');
 
@@ -278,14 +403,27 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
         console.warn('Font-related error detected - using system fonts only');
       }
       
-      // On final attempt, try with absolutely minimal data
+      // On final attempt, try with progressively simpler approaches
       if (attempt === maxAttempts) {
         try {
           console.log('🔄 Final attempt with minimal configuration');
           const minimalData = createMinimalResumeData(resumeData);
           const minimalDoc = createPDFDocument(minimalData, true);
           const minimalInstance = pdf(minimalDoc);
-          const minimalBuffer = await minimalInstance.toBuffer() as unknown as Buffer;
+          const minimalResult = await minimalInstance.toBuffer();
+          
+          // Handle buffer conversion for minimal fallback too
+          let minimalBuffer: Buffer;
+          if (Buffer.isBuffer(minimalResult)) {
+            minimalBuffer = minimalResult;
+          } else if (minimalResult instanceof Uint8Array) {
+            minimalBuffer = Buffer.from(minimalResult);
+          } else if (minimalResult && typeof minimalResult === 'object' && 'data' in minimalResult) {
+            const data = (minimalResult as any).data;
+            minimalBuffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+          } else {
+            minimalBuffer = Buffer.from(minimalResult as any);
+          }
           
           if (!minimalBuffer || !Buffer.isBuffer(minimalBuffer) || minimalBuffer.length === 0) {
             throw new Error('Even minimal PDF generation failed');
@@ -294,8 +432,15 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
           console.log(`✅ Minimal PDF generated: ${minimalBuffer.length} bytes`);
           return minimalBuffer;
         } catch (minimalError) {
-          console.error('💥 Minimal PDF generation failed:', minimalError);
-          throw lastError;
+          console.error('💥 Minimal PDF generation failed, trying simple PDF:', minimalError);
+          
+          // Last resort: try the simple PDF approach
+          try {
+            return await createSimplePDF(resumeData);
+          } catch (simpleError) {
+            console.error('💥 Simple PDF generation also failed:', simpleError);
+            throw lastError;
+          }
         }
       }
       
