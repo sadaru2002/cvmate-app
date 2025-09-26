@@ -89,7 +89,8 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   const professionalSummary = data?.professionalSummary;
   const workExperience = data?.workExperiences || [];
   const education = data?.education || [];
-  const skills = data?.skills?.technical || [];
+  // Ensure skills are filtered to only include valid names before mapping
+  const skills = data?.skills?.technical?.filter(Boolean) || [];
   const projects = data?.projects || [];
   const certifications = data?.certifications || [];
 
@@ -199,9 +200,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // For this test, fontsReady is effectively true as Helvetica is built-in.
-    // We pass false for useSystemFonts to ensure createStyles uses its default (Helvetica).
-    console.log(`Fonts loaded successfully: true (using Helvetica)`);
+    // The fontsReady flag is set asynchronously at module load.
+    // We use its current state to decide if system fonts are needed.
+    // For this test, fontsReady is effectively false as custom fonts are commented out.
+    const useSystemFonts = true; // Always use system fonts for this diagnostic step
+
+    console.log(`Fonts loaded successfully: ${!useSystemFonts} (using Helvetica)`);
 
     // Ensure all necessary data is present for the PDF component
     const fullResumeData = {
@@ -209,7 +213,8 @@ export async function POST(req: NextRequest) {
       professionalSummary: resumeData.profileInfo?.summary,
       workExperiences: resumeData.workExperiences,
       education: resumeData.education,
-      skills: { technical: resumeData.skills?.map((s: any) => s.name) },
+      // Filter out any undefined skill names before passing to PDF document
+      skills: { technical: resumeData.skills?.map((s: any) => s.name).filter(Boolean) },
       projects: resumeData.projects,
       certifications: resumeData.certifications,
       languages: resumeData.languages,
@@ -217,7 +222,7 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('API: Calling createPDFDocument with processed data.');
-    const pdfDocument = createPDFDocument(fullResumeData, false); // Pass false, as Helvetica is always available
+    const pdfDocument = createPDFDocument(fullResumeData, useSystemFonts); // Pass useSystemFonts flag
     console.log('API: PDF Document created. Attempting to buffer...');
     const pdfInstance = pdf(pdfDocument);
     const pdfBuffer = await pdfInstance.toBuffer();
