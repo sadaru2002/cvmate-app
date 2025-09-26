@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { launchChromium } from 'playwright-aws-lambda'; // For Vercel production
-import * as playwright from 'playwright-core'; // For local development
+// import * as playwright from 'playwright-core'; // Removed direct import
 
 export async function POST(req: NextRequest) {
   let browser = null;
@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
     const isDevelopment = process.env.NODE_ENV === 'development';
     
     if (isDevelopment) {
-      console.log('Development mode - Launching local Playwright Chromium');
+      console.log('Development mode - Dynamically importing local Playwright Chromium');
+      // Dynamically import playwright-core only in development
+      const playwright = await import('playwright-core');
       browser = await playwright.chromium.launch({
         headless: true,
         // You might need to specify executablePath for local dev if Playwright can't find it

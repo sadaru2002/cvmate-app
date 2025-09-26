@@ -10,13 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone', // Keep standalone output for Vercel serverless functions
-  experimental: {
-    serverExternalPackages: [
-      'playwright-aws-lambda',
-      'playwright-core', // Explicitly externalize playwright-core
-      // Add other packages here if they cause bundling issues on Vercel
-    ],
-  },
+  // Removed experimental.serverExternalPackages as it's unrecognized and causing issues.
 };
 
 export default nextConfig;
