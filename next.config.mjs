@@ -9,11 +9,24 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'standalone',
-  
-  // Removed the problematic webpack.externals block related to playwright
-  // We want playwright-aws-lambda and its dependencies to be bundled for the serverless function.
-  // If issues arise, we'll re-evaluate externals for specific native modules.
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // External playwright dependencies for server-side
+      config.externals = [
+        ...config.externals,
+        'playwright-aws-lambda',
+        'playwright-core',
+        'chromium-bidi',
+        'electron',
+      ];
+    }
+    // Ignore binary files
+    config.module.rules.push({
+      test: /\.(ttf|woff|woff2)$/,
+      type: 'asset/resource',
+    });
+    return config;
+  },
 }
 
 export default nextConfig
