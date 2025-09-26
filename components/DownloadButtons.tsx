@@ -277,34 +277,93 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
     } catch (error) {
       console.error('Client-side PDF generation failed:', error);
       
-      // Final fallback: use the original html2canvas method
+      // Final fallback: use improved html2canvas method with better quality
       try {
         const { jsPDF, html2canvas } = await loadClientPdfGenerator();
         
-        const canvas = await html2canvas(resumeElement, {
-          scale: 1.5,
+        // Create a high-quality clone for PDF generation
+        const clonedElement = resumeElement.cloneNode(true) as HTMLElement;
+        
+        // Create a temporary high-resolution container
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.top = '-9999px';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '210mm'; // A4 width
+        tempContainer.style.maxWidth = '210mm';
+        tempContainer.style.backgroundColor = 'white';
+        tempContainer.style.padding = '20px';
+        tempContainer.style.zoom = '1.5'; // Increase resolution
+        tempContainer.style.transform = 'scale(1)';
+        
+        // Improve text rendering
+        clonedElement.style.width = '100%';
+        (clonedElement.style as any).fontSmoothing = 'antialiased';
+        (clonedElement.style as any).webkitFontSmoothing = 'antialiased';
+        (clonedElement.style as any).textRendering = 'optimizeLegibility';
+        
+        tempContainer.appendChild(clonedElement);
+        document.body.appendChild(tempContainer);
+        
+        // Wait for rendering
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const canvas = await html2canvas(tempContainer, {
+          scale: 3, // Higher scale for better quality
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
+          width: tempContainer.scrollWidth,
+          height: tempContainer.scrollHeight,
+          scrollX: 0,
+          scrollY: 0,
+          removeContainer: false,
+          imageTimeout: 30000,
+          logging: false,
+          onclone: (clonedDoc) => {
+            // Ensure high quality rendering in clone
+            const style = clonedDoc.createElement('style');
+            style.textContent = `
+              * {
+                -webkit-font-smoothing: antialiased !important;
+                font-smoothing: antialiased !important;
+                text-rendering: optimizeLegibility !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+            `;
+            clonedDoc.head.appendChild(style);
+          }
         });
         
         const pdf = new jsPDF('portrait', 'mm', 'a4');
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        const imgData = canvas.toDataURL('image/png', 1.0); // Use PNG for better quality
+        
         const pageWidth = 210;
         const pageHeight = 297;
-        const imgHeight = (canvas.height * pageWidth) / canvas.width;
+        const margin = 10;
+        const contentWidth = pageWidth - (margin * 2);
+        const contentHeight = pageHeight - (margin * 2);
         
-        if (imgHeight <= pageHeight) {
-          pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeight);
-        } else {
-          const scaledHeight = pageHeight;
-          const scaledWidth = (canvas.width * pageHeight) / canvas.height;
-          const xOffset = (pageWidth - scaledWidth) / 2;
-          pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, scaledHeight);
+        const canvasRatio = canvas.height / canvas.width;
+        let finalWidth = contentWidth;
+        let finalHeight = contentWidth * canvasRatio;
+        
+        if (finalHeight > contentHeight) {
+          finalHeight = contentHeight;
+          finalWidth = contentHeight / canvasRatio;
         }
         
+        const xOffset = margin + (contentWidth - finalWidth) / 2;
+        const yOffset = margin;
+        
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
         pdf.save(`${filename}.pdf`);
-        toast.success('PDF generated (image-based fallback)');
+        
+        // Clean up
+        document.body.removeChild(tempContainer);
+        
+        toast.warning('PDF generated using image-based fallback. For selectable text and clickable links, please try again - the vector-based method should work.');
         
       } catch (fallbackError) {
         throw new Error('All PDF generation methods failed. Please try again later.');

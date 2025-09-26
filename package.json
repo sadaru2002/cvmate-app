@@ -90,6 +90,7 @@
     "@types/react-dom": "^18",
     "ignore-loader": "^0.1.2",
     "postcss": "^8.5",
+    "puppeteer": "^24.22.3",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
@@ -97,6 +98,9 @@
   "pnpm": {
     "overrides": {
       "aws4": "^1.13.2"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "puppeteer"
+    ]
   }
 }

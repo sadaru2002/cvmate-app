@@ -207,25 +207,68 @@ export async function POST(req: NextRequest) {
       </html>
     `;
 
-    // Configure Puppeteer for serverless environment
-    const executablePath = process.env.NODE_ENV === 'production'
-      ? await chromium.executablePath()
-      : process.platform === 'win32'
-      ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-      : process.platform === 'darwin'
-      ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-      : '/usr/bin/google-chrome';
+    // Configure Puppeteer for both development and production
+    let browser;
+    
+    if (process.env.NODE_ENV === 'production') {
+      // Production: Use @sparticuz/chromium
+      browser = await puppeteer.launch({
+        args: [...chromium.args, '--disable-dev-shm-usage'],
+        defaultViewport: { width: 1200, height: 1600 },
+        executablePath: await chromium.executablePath(),
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      // Development: Use regular puppeteer with local Chrome
+      try {
+        const puppeteerRegular = await import('puppeteer');
+        browser = await puppeteerRegular.default.launch({
+          headless: true,
+          defaultViewport: { width: 1200, height: 1600 },
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          ignoreHTTPSErrors: true,
+        });
+      } catch (devError) {
+        console.log('Regular puppeteer not available, trying puppeteer-core with manual Chrome path...');
+        
+        // Fallback to puppeteer-core with manual Chrome paths
+        const possiblePaths = [
+          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+          '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+          '/usr/bin/google-chrome',
+          '/usr/bin/chromium-browser'
+        ];
+        
+        let executablePath = null;
+        for (const path of possiblePaths) {
+          try {
+            const fs = require('fs');
+            if (fs.existsSync(path)) {
+              executablePath = path;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        if (!executablePath) {
+          throw new Error('Chrome/Chromium not found. Please install Google Chrome or set CHROME_EXECUTABLE_PATH environment variable.');
+        }
+        
+        browser = await puppeteer.launch({
+          executablePath,
+          headless: true,
+          defaultViewport: { width: 1200, height: 1600 },
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          ignoreHTTPSErrors: true,
+        });
+      }
+    }
 
-    console.log('Launching browser...');
-    browser = await puppeteer.launch({
-      args: process.env.NODE_ENV === 'production' 
-        ? [...chromium.args, '--disable-dev-shm-usage']
-        : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      defaultViewport: { width: 1200, height: 1600 },
-      executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
-    });
+    console.log('Browser launched successfully');
 
     console.log('Creating new page...');
     const page = await browser.newPage();
