@@ -1,5 +1,3 @@
-"use client"
-
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Image as PdfImage } from '@react-pdf/renderer';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
