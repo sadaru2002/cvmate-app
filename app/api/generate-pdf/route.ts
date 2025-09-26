@@ -41,6 +41,8 @@ async function generatePDF(req: NextRequest) {
       );
     }
 
+    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT;
+
     // Use embedded critical CSS instead of filesystem reading for serverless compatibility
     const criticalCss = `
       @tailwind base;
@@ -100,44 +102,91 @@ async function generatePDF(req: NextRequest) {
     try {
       const maxRetries = 5;
       let lastError;
+      
+      console.log(`Environment detected: ${isServerless ? 'Serverless' : 'Local'}`);
 
       // Try to launch browser with retries and exponential backoff
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`Launching browser (attempt ${attempt}/${maxRetries})...`);
           
-          browser = await launchChromium({
-            headless: true,
-            args: [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-gpu',
-              '--disable-extensions',
-              '--disable-background-timer-throttling',
-              '--disable-backgrounding-occluded-windows',
-              '--disable-renderer-backgrounding',
-              '--disable-features=TranslateUI',
-              '--disable-ipc-flooding-protection',
-              '--single-process',
-              '--no-zygote',
-              '--disable-web-security',
-              '--disable-features=VizDisplayCompositor',
-              '--disable-software-rasterizer',
-              '--disable-background-networking',
-              '--disable-default-apps',
-              '--disable-sync',
-              '--metrics-recording-only',
-              '--no-first-run',
-              '--safebrowsing-disable-auto-update',
-              '--disable-hang-monitor',
-              '--disable-prompt-on-repost',
-              '--disable-domain-reliability',
-              '--disable-component-update',
-              '--use-mock-keychain',
-            ],
-            timeout: 60000, // 60 second timeout
-          });
+          // Try different launch strategies based on attempt
+          let launchOptions;
+          
+          if (attempt === 1) {
+            // First attempt: Standard configuration
+            launchOptions = {
+              headless: true,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process',
+                '--no-zygote',
+                '--disable-web-security',
+              ],
+              timeout: 30000,
+            };
+          } else if (attempt === 2) {
+            // Second attempt: More aggressive flags
+            launchOptions = {
+              headless: true,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-extensions',
+                '--single-process',
+                '--no-zygote',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
+              ],
+              timeout: 45000,
+            };
+          } else {
+            // Final attempts: Maximum compatibility flags
+            launchOptions = {
+              headless: true,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-extensions',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
+                '--disable-features=TranslateUI',
+                '--disable-ipc-flooding-protection',
+                '--single-process',
+                '--no-zygote',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--disable-software-rasterizer',
+                '--disable-background-networking',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--metrics-recording-only',
+                '--no-first-run',
+                '--safebrowsing-disable-auto-update',
+                '--disable-hang-monitor',
+                '--disable-prompt-on-repost',
+                '--disable-domain-reliability',
+                '--disable-component-update',
+                '--use-mock-keychain',
+                '--memory-pressure-off',
+                '--max_old_space_size=4096',
+              ],
+              timeout: 60000,
+            };
+          }
+          
+          browser = await launchChromium(launchOptions);
           
           console.log('Browser launched successfully');
           break; // Success, exit retry loop
@@ -146,15 +195,27 @@ async function generatePDF(req: NextRequest) {
           lastError = error;
           console.error(`Browser launch attempt ${attempt} failed:`, error.message);
           
+          // Force garbage collection between attempts if available
+          if (global.gc) {
+            try {
+              global.gc();
+              console.log('Forced garbage collection');
+            } catch (e) {
+              // Ignore gc errors
+            }
+          }
+          
           // Special handling for ETXTBSY errors (binary busy)
           if (error.message?.includes('ETXTBSY') || error.message?.includes('spawn')) {
             console.log('Detected ETXTBSY/spawn error, using longer delay...');
           }
           
           if (attempt < maxRetries) {
-            // Exponential backoff: 1s, 2s, 4s, 8s
-            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-            console.log(`Retrying in ${delay}ms...`);
+            // Exponential backoff with jitter: 1s, 2s, 4s, 8s + random
+            const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+            const jitter = Math.random() * 1000; // Add up to 1s random delay
+            const delay = baseDelay + jitter;
+            console.log(`Retrying in ${Math.round(delay)}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
@@ -162,6 +223,12 @@ async function generatePDF(req: NextRequest) {
       
       if (!browser) {
         console.error('All browser launch attempts failed. Last error:', lastError?.message);
+        
+        // If this is a serverless ETXTBSY error, provide specific guidance
+        if (lastError?.message?.includes('ETXTBSY') && isServerless) {
+          throw new Error('PDF generation temporarily unavailable due to serverless resource constraints. Please try again in a few moments. If the issue persists, contact support.');
+        }
+        
         throw lastError || new Error('Failed to launch browser after all retries');
       }
 
@@ -215,9 +282,10 @@ async function generatePDF(req: NextRequest) {
         throw browserError;
       }
     } finally {
-      // Ensure browser is always closed
+      // Ensure browser is always closed with aggressive cleanup
       if (page) {
         try {
+          console.log('Closing page...');
           await page.close();
         } catch (e) {
           console.warn('Error closing page:', e);
@@ -225,9 +293,26 @@ async function generatePDF(req: NextRequest) {
       }
       if (browser) {
         try {
+          console.log('Closing browser...');
           await browser.close();
+          
+          // Additional cleanup for serverless environments
+          if (isServerless) {
+            // Wait a moment for browser process to fully terminate
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
         } catch (e) {
           console.warn('Error closing browser:', e);
+        }
+      }
+      
+      // Force garbage collection after cleanup if available
+      if (global.gc && isServerless) {
+        try {
+          global.gc();
+          console.log('Post-cleanup garbage collection performed');
+        } catch (e) {
+          // Ignore gc errors
         }
       }
     }
