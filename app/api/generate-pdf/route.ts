@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { launchChromium } from 'playwright-aws-lambda';
+import { promises as fs } from 'fs'; // Import fs.promises
+import path from 'path'; // Import path
 
 export async function POST(req: NextRequest) {
   let browser = null;
   
   try {
     const body = await req.json();
-    const { html, css } = body;
+    const { html } = body; // Only expect HTML now
 
     console.log('PDF generation started...');
-    console.log('Content sizes - HTML:', html?.length, 'CSS:', css?.length);
+    console.log('Content sizes - HTML:', html?.length);
 
     // Validate input
-    if (!html || !css) {
-      return NextResponse.json({ error: 'Missing html or css' }, { status: 400 });
+    if (!html) {
+      return NextResponse.json({ error: 'Missing html' }, { status: 400 });
+    }
+
+    // Read global CSS content
+    const cssPath = path.join(process.cwd(), 'app', 'globals.css');
+    let globalCss = '';
+    try {
+      globalCss = await fs.readFile(cssPath, 'utf8');
+      console.log('Global CSS loaded successfully, size:', globalCss.length);
+    } catch (cssError) {
+      console.error('Failed to load global CSS:', cssError);
+      // Continue without global CSS if it fails, but this might cause styling discrepancies
     }
 
     console.log('Launching Chromium...');
-    // Use playwright-aws-lambda for both development and production
-    // Add --no-sandbox and --disable-setuid-sandbox arguments for serverless environments
     browser = await launchChromium({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -37,7 +48,7 @@ export async function POST(req: NextRequest) {
       height: 1123, // A4 height at 96 DPI
     });
     
-    // Create complete HTML with better CSS handling and font imports
+    // Create complete HTML with embedded CSS and font imports
     const fullHtml = `
       <!DOCTYPE html>
       <html lang="en">
@@ -74,8 +85,8 @@ export async function POST(req: NextRequest) {
               size: A4;
               margin: 0;
             }
-            /* Include the extracted CSS */
-            ${css}
+            /* Embed the loaded global CSS */
+            ${globalCss}
           </style>
         </head>
         <body>
@@ -139,7 +150,7 @@ export async function POST(req: NextRequest) {
           }
           
           /* Ensure the root resume element takes full height */
-          #resume-template-for-download { /* Assuming RESUME_ELEMENT_ID is defined and passed correctly */
+          #resume-template { /* Assuming RESUME_ELEMENT_ID is defined and passed correctly */
             height: 100% !important;
             display: flex !important; /* Ensure it's a flex container if its children use flex/height */
             flex-direction: column !important;

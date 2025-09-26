@@ -22,17 +22,22 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
     setIsDownloading(true);
 
     try {
-      console.log('Starting PDF download using @react-pdf/renderer...');
+      console.log('Starting PDF download using Playwright...');
       
-      const response = await fetch('/api/generate-pdf-react', { // Call the new API route
+      // Get the HTML content of the resume preview element
+      const resumeElement = document.getElementById('resume-template'); // Assuming this ID is used in ResumePreview
+      if (!resumeElement) {
+        throw new Error('Resume preview element not found for PDF generation.');
+      }
+      const htmlContent = resumeElement.outerHTML;
+
+      const response = await fetch('/api/generate-pdf', { // Call the original API route
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          resumeData,
-          template: resumeData.template || 'TemplateOne',
-          colorPalette: resumeData.colorPalette || []
+          html: htmlContent,
         }),
       });
 

@@ -11,24 +11,9 @@ const nextConfig = {
   },
   output: 'standalone',
   
-  // Removed experimental.serverExternalPackages as it's unrecognized and causing issues.
-  
-  // Use webpack.externals to explicitly exclude problematic modules from the server bundle
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push(
-        // Use a regex to match any module starting with playwright-core or chromium-bidi
-        // This should catch all internal dependencies as well.
-        /^playwright-core(\/.*)?$/,
-        /^chromium-bidi(\/.*)?$/,
-        'playwright', // Also exclude the main 'playwright' package
-        'playwright-aws-lambda', // Keep this external
-        'electron', // Exclude electron
-        'mongodb' // Exclude mongodb
-      );
-    }
-    return config;
-  }
+  // Removed the problematic webpack.externals block related to playwright
+  // We want playwright-aws-lambda and its dependencies to be bundled for the serverless function.
+  // If issues arise, we'll re-evaluate externals for specific native modules.
 }
 
 export default nextConfig
