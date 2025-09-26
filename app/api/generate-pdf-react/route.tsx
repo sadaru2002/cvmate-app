@@ -201,22 +201,27 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`PDF generation attempt ${attempt}/${maxAttempts}`);
+      console.log('Resume data keys:', Object.keys(resumeData || {}));
       
-      // Ensure fonts are loaded before each attempt
-      const fontsLoaded = await loadFontsWithRetry();
-      const useSystemFonts = !fontsLoaded;
-      
-      console.log(`Using ${useSystemFonts ? 'system' : 'custom'} fonts for attempt ${attempt}`);
+      // Always use system fonts for reliability
+      const useSystemFonts = true;
+      console.log(`Using system fonts for attempt ${attempt}`);
 
-      // Prepare resume data with safe defaults
+      // Prepare resume data with safe defaults and extensive logging
       const fullResumeData = {
-        personalInfo: resumeData.profileInfo || {},
-        professionalSummary: resumeData.profileInfo?.summary || '',
+        personalInfo: {
+          fullName: resumeData.profileInfo?.fullName || resumeData.personalInfo?.fullName || 'John Doe',
+          designation: resumeData.profileInfo?.designation || resumeData.personalInfo?.designation || 'Professional',
+          email: resumeData.profileInfo?.email || resumeData.personalInfo?.email || 'email@example.com',
+          phone: resumeData.profileInfo?.phone || resumeData.personalInfo?.phone || '+1234567890',
+          location: resumeData.profileInfo?.location || resumeData.personalInfo?.location || '',
+        },
+        professionalSummary: resumeData.profileInfo?.summary || resumeData.professionalSummary || 'Professional summary not provided.',
         workExperiences: Array.isArray(resumeData.workExperiences) ? resumeData.workExperiences : [],
         education: Array.isArray(resumeData.education) ? resumeData.education : [],
         skills: { 
           technical: Array.isArray(resumeData.skills) 
-            ? resumeData.skills.map((s: any) => s?.name).filter(Boolean) 
+            ? resumeData.skills.map((s: any) => s?.name || s).filter(Boolean) 
             : []
         },
         projects: Array.isArray(resumeData.projects) ? resumeData.projects : [],
@@ -225,23 +230,44 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
         interests: Array.isArray(resumeData.interests) ? resumeData.interests : [],
       };
 
+      console.log('Processed resume data:', JSON.stringify(fullResumeData, null, 2));
+
       const pdfDocument = createPDFDocument(fullResumeData, useSystemFonts);
+      console.log('PDF document created successfully');
+      
       const pdfInstance = pdf(pdfDocument);
+      console.log('PDF instance created successfully');
       
       // Add timeout to prevent hanging
       const pdfBuffer = await Promise.race([
         pdfInstance.toBuffer(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('PDF generation timeout')), 30000)
+          setTimeout(() => reject(new Error('PDF generation timeout after 30 seconds')), 30000)
         )
       ]) as Buffer;
 
-      // Ensure we have a valid buffer
-      if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
-        throw new Error('Generated PDF buffer is invalid or empty');
+      console.log('PDF buffer generated, checking validity...');
+
+      // More detailed buffer validation
+      if (!pdfBuffer) {
+        throw new Error('PDF buffer is null or undefined');
+      }
+      
+      if (!Buffer.isBuffer(pdfBuffer)) {
+        throw new Error(`PDF buffer is not a Buffer instance, got: ${typeof pdfBuffer}`);
+      }
+      
+      if (pdfBuffer.length === 0) {
+        throw new Error('PDF buffer is empty (0 bytes)');
       }
 
-      console.log(`PDF generated successfully on attempt ${attempt}, buffer size: ${pdfBuffer.length}`);
+      // Check if buffer starts with PDF header
+      const pdfHeader = pdfBuffer.subarray(0, 4).toString();
+      if (!pdfHeader.startsWith('%PDF')) {
+        throw new Error(`Generated buffer does not appear to be a valid PDF (header: ${pdfHeader})`);
+      }
+
+      console.log(`PDF generated successfully on attempt ${attempt}, buffer size: ${pdfBuffer.length} bytes`);
       return pdfBuffer;
 
     } catch (error: any) {
@@ -287,7 +313,7 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
 };
 
 const createMinimalResumeData = (resumeData: any) => {
-  // Create a minimal version of resume data to avoid font issues
+  // Create a minimal version of resume data to avoid any issues
   // Sanitize all text fields to prevent special characters that might cause font issues
   const sanitizeText = (text: string) => {
     if (!text || typeof text !== 'string') return '';
@@ -297,65 +323,80 @@ const createMinimalResumeData = (resumeData: any) => {
       .trim();
   };
 
-  return {
+  const minimal = {
     personalInfo: {
-      fullName: sanitizeText(resumeData.profileInfo?.fullName) || 'Resume',
-      designation: sanitizeText(resumeData.profileInfo?.designation) || 'Professional',
-      email: sanitizeText(resumeData.profileInfo?.email) || '',
-      phone: sanitizeText(resumeData.profileInfo?.phone) || '',
-      location: sanitizeText(resumeData.profileInfo?.location) || '',
+      fullName: sanitizeText(resumeData.profileInfo?.fullName || resumeData.personalInfo?.fullName) || 'John Doe',
+      designation: sanitizeText(resumeData.profileInfo?.designation || resumeData.personalInfo?.designation) || 'Professional',
+      email: sanitizeText(resumeData.profileInfo?.email || resumeData.personalInfo?.email) || 'john.doe@email.com',
+      phone: sanitizeText(resumeData.profileInfo?.phone || resumeData.personalInfo?.phone) || '+1234567890',
+      location: sanitizeText(resumeData.profileInfo?.location || resumeData.personalInfo?.location) || 'Location',
     },
-    professionalSummary: sanitizeText(resumeData.profileInfo?.summary) || '',
-    workExperiences: (resumeData.workExperiences || []).slice(0, 3).map((exp: any) => ({
-      role: sanitizeText(exp?.role) || '',
-      company: sanitizeText(exp?.company) || '',
-      startDate: sanitizeText(exp?.startDate) || '',
-      endDate: sanitizeText(exp?.endDate) || '',
-      description: sanitizeText(exp?.description) || '',
+    professionalSummary: sanitizeText(resumeData.profileInfo?.summary || resumeData.professionalSummary) || 'Experienced professional with a strong background in various fields.',
+    workExperiences: (resumeData.workExperiences || []).slice(0, 2).map((exp: any) => ({
+      role: sanitizeText(exp?.role) || 'Role',
+      company: sanitizeText(exp?.company) || 'Company',
+      startDate: sanitizeText(exp?.startDate) || '2020',
+      endDate: sanitizeText(exp?.endDate) || '2023',
+      description: sanitizeText(exp?.description) || 'Job description',
     })),
-    education: (resumeData.education || []).slice(0, 2).map((edu: any) => ({
-      degree: sanitizeText(edu?.degree) || '',
-      institution: sanitizeText(edu?.institution) || '',
-      startDate: sanitizeText(edu?.startDate) || '',
-      endDate: sanitizeText(edu?.endDate) || '',
+    education: (resumeData.education || []).slice(0, 1).map((edu: any) => ({
+      degree: sanitizeText(edu?.degree) || 'Bachelor Degree',
+      institution: sanitizeText(edu?.institution) || 'University',
+      startDate: sanitizeText(edu?.startDate) || '2016',
+      endDate: sanitizeText(edu?.endDate) || '2020',
     })),
     skills: { 
-      technical: (resumeData.skills?.map((s: any) => sanitizeText(s?.name)).filter(Boolean) || []).slice(0, 10) 
+      technical: (resumeData.skills?.map((s: any) => sanitizeText(s?.name || s)).filter(Boolean) || ['JavaScript', 'Python', 'React']).slice(0, 5)
     },
-    projects: (resumeData.projects || []).slice(0, 3).map((proj: any) => ({
-      title: sanitizeText(proj?.title) || '',
-      description: sanitizeText(proj?.description) || '',
+    projects: (resumeData.projects || []).slice(0, 2).map((proj: any) => ({
+      title: sanitizeText(proj?.title) || 'Project',
+      description: sanitizeText(proj?.description) || 'Project description',
       LiveDemo: proj?.LiveDemo || '',
       github: proj?.github || '',
     })),
-    certifications: (resumeData.certifications || []).slice(0, 5).map((cert: any) => ({
-      title: sanitizeText(cert?.title) || '',
-      issuer: sanitizeText(cert?.issuer) || '',
-      year: sanitizeText(cert?.year) || '',
+    certifications: (resumeData.certifications || []).slice(0, 2).map((cert: any) => ({
+      title: sanitizeText(cert?.title) || 'Certification',
+      issuer: sanitizeText(cert?.issuer) || 'Issuer',
+      year: sanitizeText(cert?.year) || '2023',
     })),
     languages: [],
     interests: [],
   };
+
+  console.log('Created minimal resume data:', JSON.stringify(minimal, null, 2));
+  return minimal;
 };
 
 export async function POST(req: NextRequest) {
   console.log('API: generate-pdf-react POST request received.');
   try {
-    const { resumeData, filename = "resume" } = await req.json();
+    const body = await req.json();
+    const { resumeData, filename = "resume" } = body;
 
+    console.log('API: Request body keys:', Object.keys(body || {}));
     console.log('API: Received resumeData keys:', Object.keys(resumeData || {}));
     console.log('API: Filename:', filename);
 
     if (!resumeData) {
-      console.error('API: Resume data is missing.');
+      console.error('API: Resume data is missing from request body');
       return NextResponse.json(
         { success: false, error: "Resume data is required" },
         { status: 400 }
       );
     }
 
+    // Log the structure of resumeData for debugging
+    console.log('API: Resume data structure:');
+    console.log('- profileInfo:', resumeData.profileInfo ? Object.keys(resumeData.profileInfo) : 'missing');
+    console.log('- personalInfo:', resumeData.personalInfo ? Object.keys(resumeData.personalInfo) : 'missing');
+    console.log('- workExperiences:', Array.isArray(resumeData.workExperiences) ? resumeData.workExperiences.length : 'not array');
+    console.log('- education:', Array.isArray(resumeData.education) ? resumeData.education.length : 'not array');
+    console.log('- skills:', Array.isArray(resumeData.skills) ? resumeData.skills.length : 'not array');
+
     // Generate PDF with retry logic
+    console.log('API: Starting PDF generation...');
     const pdfBuffer = await generatePDFWithRetry(resumeData, filename);
+    console.log('API: PDF generation completed successfully');
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
@@ -367,19 +408,20 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("API: React PDF generation error caught in POST handler:", error);
-    console.error("API: Error details:", error?.message);
+    console.error("API: Error message:", error?.message);
     console.error("API: Error stack:", error?.stack);
     
-    // Return more specific error information
-    const errorMessage = error?.message?.includes('DataView') 
-      ? 'Font rendering error - please try again with simpler formatting'
-      : error?.message || 'Unknown error';
+    // Return more specific error information for debugging
+    const errorMessage = error?.message || 'Unknown error';
+    const errorType = error?.name || 'UnknownError';
     
     return NextResponse.json({
       success: false,
       error: "Failed to generate PDF",
       details: errorMessage,
-      retryable: true
+      errorType: errorType,
+      retryable: true,
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }
