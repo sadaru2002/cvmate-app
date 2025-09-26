@@ -22,14 +22,22 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
     setIsDownloading(true);
 
     try {
-      console.log('Starting PDF download using @react-pdf/renderer...');
+      console.log('Starting PDF download using Playwright...');
       
-      const response = await fetch('/api/generate-pdf-react', { // Call the new API route
+      // Get the HTML content from the preview element for identical rendering
+      const resumeElement = document.getElementById('resume-template');
+      if (!resumeElement) {
+        throw new Error('Resume template not found. Please ensure the preview is loaded.');
+      }
+
+      const html = resumeElement.outerHTML;
+      
+      const response = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(resumeData),
+        body: JSON.stringify({ html }),
       });
 
       console.log('API Response status:', response.status);
@@ -40,7 +48,7 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
         
         try {
           const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.message || `Server error: ${response.status}`);
+          throw new Error(errorJson.error || `Server error: ${response.status}`);
         } catch {
           throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
         }

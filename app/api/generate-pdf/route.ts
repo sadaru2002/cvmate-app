@@ -1,238 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { launchChromium } from 'playwright-aws-lambda';
+import playwright from 'playwright-aws-lambda';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 export async function POST(req: NextRequest) {
-  let browser = null;
-  
   try {
-    const body = await req.json();
-    const { html, css } = body;
+    const { html } = await req.json();
 
-    console.log('PDF generation started...');
-    console.log('Content sizes - HTML:', html?.length, 'CSS:', css?.length);
-
-    // Validate input
-    if (!html || !css) {
-      return NextResponse.json({ error: 'Missing html or css' }, { status: 400 });
+    if (!html) {
+      return NextResponse.json(
+        { error: 'HTML content is required' },
+        { status: 400 }
+      );
     }
 
-    console.log('Launching Chromium...');
-    // Use playwright-aws-lambda for both development and production
-    // Add --no-sandbox and --disable-setuid-sandbox arguments for serverless environments
-    browser = await launchChromium({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // Read the globals.css file for full styling consistency
+    let cssContent = '';
+    try {
+      const cssPath = path.join(process.cwd(), 'app', 'globals.css');
+      cssContent = await fs.readFile(cssPath, 'utf-8');
+    } catch (error) {
+      console.warn('Could not read globals.css:', error);
+    }
 
-    console.log('Browser launched successfully');
+    // Create complete HTML with Tailwind CDN and local styles
+    const fullHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume PDF</title>
+  <!-- Tailwind CSS CDN for consistency -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Local styles from globals.css */
+    ${cssContent}
+    
+    /* Additional print optimizations */
+    @media print {
+      body { -webkit-print-color-adjust: exact; }
+      * { print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  ${html}
+</body>
+</html>`;
+
+    // Generate PDF using Playwright
+    const browser = await playwright.launchChromium({
+      headless: true,
+    });
 
     const page = await browser.newPage();
     
-    // Emulate print media type
-    await page.emulateMedia({ media: 'print' });
-
-    // Set viewport to A4 size
-    await page.setViewportSize({ 
-      width: 794, // A4 width at 96 DPI
-      height: 1123, // A4 height at 96 DPI
-    });
+    // Set viewport for consistent rendering
+    await page.setViewportSize({ width: 1200, height: 1600 });
     
-    // Create complete HTML with better CSS handling and font imports
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Resume</title>
-          <!-- Explicitly import Geist Sans and Geist Mono from Google Fonts -->
-          <link href="https://fonts.googleapis.com/css2?family=Geist+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400&display=swap" rel="stylesheet" font-display="swap">
-          <style>
-            /* Aggressive reset for html and body to prevent unwanted margins/padding */
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              box-sizing: border-box !important;
-              height: 100% !important; /* Ensure html and body take full height */
-            }
-            * { 
-              box-sizing: border-box !important;
-              -webkit-print-color-adjust: exact !important;
-              color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            body { 
-              font-family: 'Geist Sans', sans-serif !important; /* Use Geist Sans as primary font */
-              background: white !important;
-              color: black !important;
-              font-size: 14px !important;
-              line-height: 1.5 !important;
-              width: 794px !important;
-              min-height: 1123px !important;
-            }
-            @page {
-              size: A4;
-              margin: 0;
-            }
-            /* Include the extracted CSS */
-            ${css}
-          </style>
-        </head>
-        <body>
-          ${html}
-        </body>
-      </html>
-    `;
-    
-    console.log('Setting page content...');
-    
-    // Set content with extended timeout
-    await page.setContent(fullHtml, { 
-      waitUntil: ['networkidle0', 'domcontentloaded'],
-      timeout: 60000 // 60 second timeout
-    });
+    // Set content with complete HTML
+    await page.setContent(fullHtml, { waitUntil: 'networkidle' });
 
-    console.log('Content set, waiting for resources (fonts, images)...');
-
-    // Wait for fonts and images to load
-    await page.evaluate(() => {
-      return Promise.all([
-        document.fonts.ready, // Wait for all @font-face to be loaded
-        ...Array.from(document.images).map(img => {
-          if (img.complete) return Promise.resolve();
-          return new Promise(resolve => {
-            img.addEventListener('load', resolve);
-            img.addEventListener('error', resolve);
-            // Timeout individual images after 5 seconds to prevent indefinite waiting
-            setTimeout(resolve, 5000);
-          });
-        })
-      ]);
-    });
-
-    // Add print-specific styles and layout stabilization
-    await page.addStyleTag({
-      content: `
-        @media print {
-          * {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            box-sizing: border-box !important; /* Ensure consistent box model */
-          }
-          
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 794px !important;
-            min-height: 1123px !important;
-            height: 100% !important; /* Ensure html and body take full height in print media */
-          }
-          
-          /* Force consistent measurements */
-          .grid {
-            display: grid !important;
-          }
-          
-          .flex {
-            display: flex !important;
-          }
-          
-          /* Ensure the root resume element takes full height */
-          #resume-template-for-download { /* Assuming RESUME_ELEMENT_ID is defined and passed correctly */
-            height: 100% !important;
-            display: flex !important; /* Ensure it's a flex container if its children use flex/height */
-            flex-direction: column !important;
-          }
-
-          /* Prevent page breaks in critical areas */
-          .resume-section {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-            page-break-after: avoid !important; /* Also avoid breaking after a section */
-            page-break-before: avoid !important; /* Also avoid breaking before a section */
-          }
-        }
-        
-        /* Layout stabilization: Remove animations/transitions that might interfere with static rendering */
-        * {
-          transform: none !important;
-          transition: none !important;
-          animation: none !important;
-        }
-      `
-    });
-
-    // A final, longer wait to ensure all rendering and layout calculations are complete
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Increased wait time to 5 seconds
-
-    // Force layout recalculation (reflow)
-    await page.evaluate(() => {
-      document.body.offsetHeight; // Trigger reflow
-      
-      // Re-apply display properties for flex/grid elements to ensure correct calculation
-      const layoutElements = document.querySelectorAll('[style*="display: flex"], [style*="display: grid"], .flex, .grid');
-      layoutElements.forEach(el => {
-        const style = (el as HTMLElement).style;
-        const originalDisplay = style.display;
-        style.display = 'none'; // Temporarily hide
-        (el as HTMLElement).offsetHeight; // Trigger reflow
-        style.display = originalDisplay; // Restore display
-      });
-    });
-    
-    console.log('Generating PDF...');
-    
-    // Generate PDF with optimal settings
-    const pdf = await page.pdf({
+    // Generate PDF with optimized settings
+    const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      preferCSSPageSize: false, // Let Playwright determine page size based on content and @page rules
+      preferCSSPageSize: false,
       margin: {
-        top: '0mm',
-        right: '0mm', 
-        bottom: '0mm',
-        left: '0mm'
-      },
-      displayHeaderFooter: false,
-      timeout: 60000, // 60 second timeout for PDF generation
+        top: '0.5in',
+        right: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in'
+      }
     });
-    
-    console.log('PDF generated successfully, size:', pdf.length, 'bytes');
-    
-    return new NextResponse(pdf, {
+
+    await browser.close();
+
+    // Return PDF with proper headers
+    return new NextResponse(pdfBuffer as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="resume.pdf"',
-        'Content-Length': pdf.length.toString(),
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Content-Length': pdfBuffer.length.toString(),
       },
     });
-    
-  } catch (error: any) {
+
+  } catch (error) {
     console.error('PDF generation error:', error);
-    console.error('Error stack:', error.stack);
-    
     return NextResponse.json(
-      { 
-        error: 'PDF generation failed', 
-        message: error.message,
-        details: 'Check server console for detailed error information',
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      },
+      { error: 'Failed to generate PDF', details: error.message },
       { status: 500 }
     );
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-        console.log('Browser closed successfully');
-      } catch (e) {
-        console.error('Error closing browser:', e);
-      }
-    }
   }
 }
