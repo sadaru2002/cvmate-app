@@ -1,6 +1,7 @@
 import React from 'react';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import PdfTemplateOne from './templates/PdfTemplateOne';
+import PdfTemplateTwo from './templates/PdfTemplateTwo';
 import PdfResume from './PdfResume'; // Fallback to the original template
 
 interface PdfTemplateRouterProps {
@@ -16,8 +17,7 @@ const PdfTemplateRouter: React.FC<PdfTemplateRouterProps> = ({ data, template, c
     case 'TemplateOne':
       return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     case 'TemplateTwo':
-      // TODO: Create PdfTemplateTwo
-      return <PdfResume data={data} />;
+      return <PdfTemplateTwo data={data} colorPalette={colorPalette} />;
     case 'TemplateThree':
       // TODO: Create PdfTemplateThree
       return <PdfResume data={data} />;
