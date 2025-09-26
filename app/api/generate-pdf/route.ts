@@ -1,34 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
-
-// Function to find Microsoft Edge executable
-function findEdge() {
-  const possiblePaths = [
-    // Windows Edge paths
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-    `C:\\Users\\${process.env.USERNAME}\\AppData\\Local\\Microsoft\\Edge\\Application\\msedge.exe`,
-    // Also try Chrome as fallback
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  ];
-
-  for (const p of possiblePaths) {
-    try {
-      if (fs.existsSync(p)) {
-        console.log('Found browser at:', p);
-        return p;
-      }
-    } catch (e) {
-      // Continue to next path
-    }
-  }
-
-  console.log('No browser found in common locations');
-  return null;
-}
+import { launchChromium } from 'playwright-aws-lambda'; // For Vercel production
+import * as playwright from 'playwright-core'; // For local development
 
 export async function POST(req: NextRequest) {
   let browser = null;
@@ -45,63 +17,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing html or css' }, { status: 400 });
     }
 
-    // Configure launch options for serverless or local environment
     const isDevelopment = process.env.NODE_ENV === 'development';
-    let launchOptions;
-
+    
     if (isDevelopment) {
-      // Development: Try to find local browser
-      const browserPath = findEdge();
-      console.log('Development mode - Using browser path:', browserPath || 'default browser');
-      
-      launchOptions = {
+      console.log('Development mode - Launching local Playwright Chromium');
+      browser = await playwright.chromium.launch({
         headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--disable-extensions',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--no-first-run',
-          '--disable-default-apps',
-          '--disable-features=TranslateUI',
-          '--disable-ipc-flooding-protection'
-        ],
-        ...(browserPath && { executablePath: browserPath })
-      };
+        // You might need to specify executablePath for local dev if Playwright can't find it
+        // For example: executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' on macOS
+        // Playwright usually handles this automatically if Chrome/Chromium is installed.
+      });
     } else {
-      // Production: Use serverless chromium
-      console.log('Production mode - Using serverless chromium');
-      launchOptions = {
-        args: chromium.args,
-        defaultViewport: { width: 1920, height: 1080 },
-        executablePath: await chromium.executablePath(),
-        headless: 'new' as const,
-      };
+      console.log('Production mode - Launching playwright-aws-lambda Chromium');
+      browser = await launchChromium({
+        headless: true, // Always headless in serverless
+      });
     }
 
-    console.log('Launching browser with options:', { 
-      isDevelopment,
-      headless: true 
-    });
-
-    // Launch browser
-    browser = await puppeteer.launch(launchOptions);
     console.log('Browser launched successfully');
 
     const page = await browser.newPage();
     
     // Emulate print media type
-    await page.emulateMediaType('print');
+    await page.emulateMedia({ media: 'print' }); // Playwright equivalent
 
     // Set viewport to A4 size
-    await page.setViewport({ 
-      width: 794, 
-      height: 1123,
-      deviceScaleFactor: 1
+    await page.setViewportSize({ 
+      width: 794, // A4 width at 96 DPI
+      height: 1123, // A4 height at 96 DPI
     });
     
     // Create complete HTML with better CSS handling and font imports
@@ -136,7 +79,6 @@ export async function POST(req: NextRequest) {
               line-height: 1.5 !important;
               width: 794px !important;
               min-height: 1123px !important;
-              /* Removed overflow: hidden !important; to allow content to wrap */
             }
             @page {
               size: A4;
@@ -195,7 +137,6 @@ export async function POST(req: NextRequest) {
             width: 794px !important;
             min-height: 1123px !important;
             height: 100% !important; /* Ensure html and body take full height in print media */
-            /* Removed overflow: hidden !important; from print media query as well */
           }
           
           /* Force consistent measurements */
@@ -252,15 +193,11 @@ export async function POST(req: NextRequest) {
     
     console.log('Generating PDF...');
     
-    // TEMPORARY: Save a screenshot for debugging
-    await page.screenshot({ path: 'debug_resume.png', fullPage: true });
-    console.log('Screenshot saved to debug_resume.png');
-
     // Generate PDF with optimal settings
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      preferCSSPageSize: false, // Let Puppeteer determine page size based on content and @page rules
+      preferCSSPageSize: false, // Let Playwright determine page size based on content and @page rules
       margin: {
         top: '0mm',
         right: '0mm', 
@@ -294,7 +231,6 @@ export async function POST(req: NextRequest) {
         error: 'PDF generation failed', 
         message: error.message,
         details: 'Check server console for detailed error information',
-        browserPath: findEdge(),
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }

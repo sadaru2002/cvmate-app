@@ -9,7 +9,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'standalone', // Add this line for Puppeteer deployment
-}
+  output: 'standalone', // Keep standalone output for Vercel serverless functions
+  experimental: {
+    serverExternalPackages: [
+      'playwright-aws-lambda',
+      // Add other packages here if they cause bundling issues on Vercel
+    ],
+  },
+};
 
-export default nextConfig
+export default nextConfig;
