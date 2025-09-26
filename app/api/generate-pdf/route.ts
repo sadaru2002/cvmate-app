@@ -64,14 +64,49 @@ async function generatePDF(req: NextRequest) {
         -moz-osx-font-smoothing: grayscale;
       }
       
+      /* PDF-specific optimizations */
+      #resume-template {
+        max-height: 100vh !important;
+        overflow: hidden !important;
+        page-break-inside: avoid !important;
+        transform-origin: top left;
+        width: 210mm !important;
+        min-height: auto !important;
+      }
+      
+      /* Prevent content overflow */
+      .resume-section {
+        page-break-inside: avoid;
+        margin-bottom: 0.5rem;
+      }
+      
+      /* Optimize text for PDF */
+      p, div, span {
+        text-overflow: ellipsis;
+        word-wrap: break-word;
+        hyphens: auto;
+      }
+      
       @media print {
         body { 
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         * { 
-          print-color-adjust: exact;
-          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact !important;
+          -webkit-print-color-adjust: exact !important;
+        }
+        
+        @page {
+          size: A4;
+          margin: 0.5in;
+        }
+        
+        #resume-template {
+          max-height: none !important;
+          height: auto !important;
+          transform: scale(0.95);
+          transform-origin: top left;
         }
       }
     `;
@@ -128,9 +163,7 @@ async function generatePDF(req: NextRequest) {
             ],
             defaultViewport: { width: 1200, height: 1600 },
             executablePath: isServerless 
-              ? await chromium.executablePath({
-                  cacheDir: '/tmp/.chromium',
-                }) 
+              ? await chromium.executablePath() 
               : undefined, // Let puppeteer find Chrome locally
             headless: true,
             ignoreHTTPSErrors: true,
@@ -254,7 +287,14 @@ async function generatePDF(req: NextRequest) {
           right: '0.5in',
           bottom: '0.5in',
           left: '0.5in'
-        }
+        },
+        // Add options to prevent content overflow
+        scale: 0.8, // Scale down content slightly to fit better
+        preferCSSPageSize: false, // Don't use CSS page size
+        displayHeaderFooter: false,
+        // Optimize for smaller file size
+        tagged: false,
+        outline: false
       });
 
       console.log('PDF generated successfully, size:', pdfBuffer.length);

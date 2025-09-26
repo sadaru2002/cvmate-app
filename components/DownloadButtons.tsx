@@ -115,37 +115,62 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       
       const { jsPDF, html2canvas } = await loadClientPdfGenerator();
       
-      // Convert HTML to canvas
+      // Get the actual dimensions of the resume element
+      const rect = resumeElement.getBoundingClientRect();
+      
+      // Convert HTML to canvas with optimized settings
       const canvas = await html2canvas(resumeElement, {
-        scale: 2, // Higher quality
+        scale: 1.5, // Reduced from 2 for smaller file size
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: resumeElement.scrollWidth,
-        height: resumeElement.scrollHeight,
+        width: rect.width,
+        height: rect.height,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: rect.width,
+        windowHeight: rect.height,
+        // Optimize for better quality/size ratio
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.querySelector('#resume-template');
+          if (clonedElement) {
+            // Ensure the cloned element has the same dimensions
+            (clonedElement as HTMLElement).style.width = `${rect.width}px`;
+            (clonedElement as HTMLElement).style.height = `${rect.height}px`;
+            (clonedElement as HTMLElement).style.transform = 'none';
+            (clonedElement as HTMLElement).style.position = 'relative';
+          }
+        }
       });
       
-      // Calculate PDF dimensions (A4 size)
+      // Calculate proper PDF dimensions
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
+      // Create PDF with proper orientation
+      const orientation = imgHeight > pageHeight ? 'portrait' : 'portrait';
+      const pdf = new jsPDF(orientation, 'mm', 'a4');
       
-      let heightLeft = imgHeight;
-      let position = 0;
+      // Convert canvas to compressed image data
+      const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG with compression
       
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // Fit content to single page if possible
+      if (imgHeight <= pageHeight) {
+        // Content fits in one page
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      } else {
+        // Content is too tall, scale it down to fit one page
+        const scaleFactor = pageHeight / imgHeight;
+        const scaledWidth = imgWidth * scaleFactor;
+        const scaledHeight = pageHeight;
+        
+        // Center the scaled image
+        const xOffset = (imgWidth - scaledWidth) / 2;
+        
+        pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, scaledHeight);
       }
       
       // Save the PDF
