@@ -3,18 +3,15 @@ import { Document, Page, Text, View, StyleSheet, Font, Image as PdfImage } from 
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import { cleanUrlForDisplay } from '@/lib/utils';
 
-// Register fonts locally
-// Ensure you have Lato-Regular.ttf and Lato-Bold.ttf in your public/fonts directory
-Font.register({ family: 'Open Sans', src: 'https://fonts.gstatic.com/s/opensans/v17/mem8YaGs126MiZpBA-UFVZ0e.ttf' }); // Keeping Open Sans from URL for now
-Font.register({ family: 'Lato', src: '/fonts/Lato-Regular.ttf' });
-Font.register({ family: 'Lato Bold', src: '/fonts/Lato-Bold.ttf' });
+// Use built-in fonts for maximum compatibility on serverless environments
+// These fonts are built into @react-pdf/renderer and don't need external loading
 
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
     padding: 30,
-    fontFamily: 'Open Sans',
+    fontFamily: 'Helvetica',
     fontSize: 10,
     color: '#333333',
   },
@@ -24,13 +21,13 @@ const styles = StyleSheet.create({
   },
   fullName: {
     fontSize: 24,
-    fontFamily: 'Lato Bold',
+    fontFamily: 'Helvetica-Bold',
     marginBottom: 5,
     color: '#212121',
   },
   designation: {
     fontSize: 14,
-    fontFamily: 'Lato',
+    fontFamily: 'Helvetica',
     marginBottom: 10,
     color: '#666666',
   },
@@ -50,7 +47,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'Lato Bold',
+    fontFamily: 'Helvetica-Bold',
     marginBottom: 8,
     paddingBottom: 2,
     borderBottomWidth: 1,
@@ -73,17 +70,17 @@ const styles = StyleSheet.create({
   },
   experienceRole: {
     fontSize: 11,
-    fontFamily: 'Lato Bold',
+    fontFamily: 'Helvetica-Bold',
     color: '#212121',
   },
   experienceCompany: {
     fontSize: 10,
-    fontFamily: 'Lato',
+    fontFamily: 'Helvetica',
     color: '#666666',
   },
   experienceDuration: {
     fontSize: 9,
-    fontFamily: 'Lato',
+    fontFamily: 'Helvetica',
     fontStyle: 'italic',
     color: '#666666',
   },
@@ -113,7 +110,7 @@ const styles = StyleSheet.create({
   },
   projectTitle: {
     fontSize: 11,
-    fontFamily: 'Lato Bold',
+    fontFamily: 'Helvetica-Bold',
     marginBottom: 2,
     color: '#212121',
   },
@@ -133,7 +130,7 @@ const styles = StyleSheet.create({
   },
   certificationTitle: {
     fontSize: 10,
-    fontFamily: 'Lato Bold',
+    fontFamily: 'Helvetica-Bold',
     color: '#212121',
   },
   certificationDetails: {
