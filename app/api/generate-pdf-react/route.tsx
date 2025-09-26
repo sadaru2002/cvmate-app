@@ -4,16 +4,16 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Register Inter font from Google Fonts CDN (WOFF2 format)
+// Register Roboto font using TTF format for better compatibility
 Font.register({
-  family: "Inter",
+  family: "Roboto",
   fonts: [
     {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2",
+      src: "https://fonts.gstatic.com/s/roboto/v20/KFOmCnqEu92Fr1Mu4mxK.ttf", // Roboto Regular TTF
       fontWeight: "normal",
     },
     {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiIJoEk-_EeA.woff2",
+      src: "https://fonts.gstatic.com/s/roboto/v20/KFOlCnqEu92Fr1MmWUlfBBc4.ttf", // Roboto Bold TTF
       fontWeight: "bold",
     },
   ],
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: "Inter",
+    fontFamily: "Roboto", // Changed to Roboto
     fontSize: 11,
     color: "#333333",
   },
