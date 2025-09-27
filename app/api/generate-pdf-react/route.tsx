@@ -4,8 +4,7 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Removed custom font registration. Using only built-in fonts for stability.
-// The 'fontsReady' flag is no longer needed.
+// No custom font registration. Using only built-in fonts for stability.
 
 // Styles using only built-in Helvetica fonts
 const createStyles = () => StyleSheet.create({
@@ -64,7 +63,7 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
-const createPDFDocument = (data: any) => { // Removed useSystemFonts parameter
+const createPDFDocument = (data: any) => {
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
   console.log('createPDFDocument: Using built-in Helvetica fonts.');
 
@@ -175,10 +174,6 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
     try {
       console.log(`PDF generation attempt ${attempt}/${maxAttempts}`);
       
-      // Force useSystemFonts to true as custom fonts are removed
-      const useSystemFonts = true; 
-      console.log(`Using system fonts: ${useSystemFonts} (custom fonts disabled)`);
-
       // Prepare resume data with comprehensive fallbacks
       const fullResumeData = {
         personalInfo: {
@@ -204,72 +199,13 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
 
       console.log('Processed resume data for PDF generation');
 
-      // Create PDF with error boundary
-      let pdfDocument;
-      try {
-        pdfDocument = createPDFDocument(fullResumeData); // No useSystemFonts parameter needed
-        console.log('PDF document React element created successfully');
-      } catch (docError: any) {
-        console.error('Error creating PDF document React element:', docError);
-        throw new Error(`PDF document React element creation failed: ${docError.message}`);
-      }
+      // Create PDF document React element
+      const pdfDocument = createPDFDocument(fullResumeData);
+      console.log('PDF document React element created successfully');
       
-      const pdfInstance = pdf(pdfDocument); // This returns a PDFRenderer instance
-      console.log('PDFRenderer instance created successfully');
-      
-      // Reduced timeout for Vercel
-      const pdfResult = await Promise.race([
-        pdfInstance.toBuffer(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('PDF generation timeout after 25 seconds')), 25000)
-        )
-      ]);
-
-      console.log('PDF result type:', typeof pdfResult);
-      console.log('PDF result constructor:', pdfResult?.constructor?.name);
-
-      // Handle different buffer types that might be returned in Vercel
-      let pdfBuffer: Buffer;
-      
-      if (Buffer.isBuffer(pdfResult)) {
-        pdfBuffer = pdfResult;
-        console.log('Direct Buffer received');
-      } else if (pdfResult instanceof Uint8Array) {
-        pdfBuffer = Buffer.from(pdfResult);
-        console.log('Uint8Array converted to Buffer');
-      } else if (pdfResult && typeof pdfResult === 'object' && 'data' in pdfResult) {
-        // Handle case where result has a 'data' property containing the buffer
-        const data = (pdfResult as any).data;
-        if (Buffer.isBuffer(data)) {
-          pdfBuffer = data;
-        } else if (data instanceof Uint8Array) {
-          pdfBuffer = Buffer.from(data);
-        } else if (Array.isArray(data)) {
-          pdfBuffer = Buffer.from(data);
-        } else {
-          throw new Error(`Unsupported data type in PDF result: ${typeof data}`);
-        }
-        console.log('Extracted buffer from result.data');
-      } else if (pdfResult && typeof pdfResult === 'object' && 'buffer' in pdfResult) {
-        // Handle case where result has a 'buffer' property
-        const buffer = (pdfResult as any).buffer;
-        if (Buffer.isBuffer(buffer)) {
-          pdfBuffer = buffer;
-        } else if (buffer instanceof Uint8Array) {
-          pdfBuffer = Buffer.from(buffer);
-        } else {
-          throw new Error(`Unsupported buffer type: ${typeof buffer}`);
-        }
-        console.log('Extracted buffer from result.buffer');
-      } else if (Array.isArray(pdfResult)) {
-        pdfBuffer = Buffer.from(pdfResult);
-        console.log('Array converted to Buffer');
-      } else {
-        console.error('Unexpected PDF result structure:', pdfResult);
-        throw new Error(`Invalid buffer type: ${typeof pdfResult}, constructor: ${pdfResult?.constructor?.name}`);
-      }
-
-      console.log('PDF buffer generated, validating...');
+      // Get PDF buffer directly from the pdf() function
+      const pdfBuffer = await pdf(pdfDocument).toBuffer();
+      console.log('PDF buffer generated successfully from pdf().toBuffer()');
 
       // Comprehensive buffer validation
       if (!pdfBuffer) {
@@ -277,7 +213,7 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       }
       
       if (!Buffer.isBuffer(pdfBuffer)) {
-        throw new Error(`Invalid buffer type: ${typeof pdfBuffer}`);
+        throw new Error(`Invalid buffer type: ${typeof pdfBuffer}, constructor: ${pdfBuffer?.constructor?.name}`);
       }
       
       if (pdfBuffer.length === 0) {
