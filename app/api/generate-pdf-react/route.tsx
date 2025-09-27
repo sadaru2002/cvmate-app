@@ -1,192 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Document, Page, Text, View, StyleSheet, pdf, Link } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import React from "react";
+import PdfTemplateRouter from "@/components/pdf-templates/PdfTemplateRouter";
 
 export const maxDuration = 60;
 
-// No custom font registration. Using only built-in fonts for stability.
-
-// Styles using only built-in Helvetica fonts
-const createStyles = () => StyleSheet.create({
-  page: {
-    flexDirection: "column",
-    backgroundColor: "#ffffff",
-    padding: 30,
-    fontFamily: "Helvetica", // Always use Helvetica
-    fontSize: 11,
-    color: "#333333",
-  },
-  header: {
-    marginBottom: 20,
-    borderBottom: "2pt solid #e5e7eb", // Use 'pt' for points
-    paddingBottom: 15,
-  },
-  name: {
-    fontSize: 24,
-    fontFamily: "Helvetica-Bold", // Explicitly use Helvetica-Bold
-    color: "#1f2937",
-    marginBottom: 5,
-  },
-  text: {
-    fontSize: 11,
-    fontFamily: "Helvetica", // Explicitly use Helvetica
-    color: "#4b5563",
-    marginBottom: 5,
-  },
-  textBold: { // For explicit bold text
-    fontSize: 11,
-    fontFamily: "Helvetica-Bold", // Explicitly use Helvetica-Bold
-    color: "#4b5563",
-    marginBottom: 5,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: "Helvetica-Bold", // Explicitly use Helvetica-Bold
-    color: "#1f2937",
-    marginBottom: 10,
-    borderBottom: "1pt solid #e5e7eb", // Use 'pt' for points
-    paddingBottom: 5,
-  },
-  sectionContent: {
-    marginBottom: 15,
-  },
-  listItem: {
-    fontSize: 11,
-    fontFamily: "Helvetica", // Explicitly use Helvetica
-    color: "#4b5563",
-    marginBottom: 3,
-  },
-  link: {
-    color: "#2563eb",
-    textDecoration: "underline",
-    fontFamily: "Helvetica", // Explicitly use Helvetica
-  },
-});
-
 const createPDFDocument = (data: any) => {
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
-  console.log('createPDFDocument: Using built-in Helvetica fonts.');
+  console.log('createPDFDocument: Using template:', data.template, 'with colors:', data.colorPalette);
 
-  const styles = createStyles();
-
-  // Enhanced text sanitization to prevent any encoding issues
-  const sanitizeText = (text: any): string => {
-    if (text === null || text === undefined) return '';
-    const str = String(text);
-    // More aggressive sanitization for PDF compatibility
-    return str
-      .replace(/[^\x20-\x7E\n\r\t]/g, ' ') // Replace non-ASCII with spaces
-      .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim()
-      .substring(0, 1000); // Limit length to prevent issues
-  };
-
-  const personalInfo = data?.personalInfo || {};
-  const professionalSummary = sanitizeText(data?.professionalSummary);
-  const workExperience = Array.isArray(data?.workExperiences) ? data.workExperiences : [];
-  const education = Array.isArray(data?.education) ? data.education : [];
-  const skills = Array.isArray(data?.skills?.technical) ? data.skills.technical.filter(Boolean) : [];
-  const projects = Array.isArray(data?.projects) ? data.projects : [];
-  const certifications = Array.isArray(data?.certifications) ? data.certifications : [];
-
+  // Use the PdfTemplateRouter to render the correct template
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Text style={styles.name}>{sanitizeText(personalInfo.fullName) || "Your Name"}</Text>
-          <Text style={styles.text}>{sanitizeText(personalInfo.designation) || "Professional Title"}</Text>
-          <Text style={styles.text}>Email: {sanitizeText(personalInfo.email) || "email@example.com"}</Text>
-          <Text style={styles.text}>Phone: {sanitizeText(personalInfo.phone) || "+1 234-567-8900"}</Text>
-          {personalInfo.location && <Text style={styles.text}>Location: {sanitizeText(personalInfo.location)}</Text>}
-        </View>
-
-        {/* Professional Summary */}
-        {professionalSummary && (
-          <View style={styles.sectionContent}>
-            <Text style={styles.sectionTitle}>Professional Summary</Text>
-            <Text style={styles.text}>{professionalSummary}</Text>
-          </View>
-        )}
-
-        {/* Work Experience */}
-        {workExperience.length > 0 && (
-          <View style={styles.sectionContent}>
-            <Text style={styles.sectionTitle}>Work Experience</Text>
-            {workExperience.map((job: any, index: number) => (
-              <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.textBold}>
-                  {sanitizeText(`${job?.role || ''} ${job?.company ? `at ${job.company}` : ''} (${job?.startDate || ''} - ${job?.endDate || 'Present'})`)}
-                </Text>
-                {job?.description && (
-                  <Text style={styles.text}>{sanitizeText(job.description)}</Text>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Education */}
-        {education.length > 0 && (
-          <View style={styles.sectionContent}>
-            <Text style={styles.sectionTitle}>Education</Text>
-            {education.map((edu: any, index: number) => (
-              <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.text}>
-                  {sanitizeText(`${edu?.degree || ''} - ${edu?.institution || ''} (${edu?.startDate || ''} - ${edu?.endDate || ''})`)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Skills */}
-        {skills.length > 0 && (
-          <View style={styles.sectionContent}>
-            <Text style={styles.sectionTitle}>Technical Skills</Text>
-            <Text style={styles.text}>
-              {skills.map(skill => sanitizeText(skill)).filter(Boolean).slice(0, 15).join(", ")}
-            </Text>
-          </View>
-        )}
-
-        {/* Projects */}
-        {projects.length > 0 && (
-          <View style={styles.sectionContent}>
-            <Text style={styles.sectionTitle}>Projects</Text>
-            {projects.slice(0, 5).map((project: any, index: number) => (
-              <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.textBold}>{sanitizeText(project?.title) || `Project ${index + 1}`}</Text>
-                {project?.description && (
-                  <Text style={styles.text}>{sanitizeText(project.description)}</Text>
-                )}
-                {project?.LiveDemo && (
-                  <Link src={sanitizeText(project.LiveDemo)} style={styles.link}>Live Demo</Link>
-                )}
-                {project?.github && (
-                  <Link src={sanitizeText(project.github)} style={styles.link}>GitHub</Link>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Certifications */}
-        {certifications.length > 0 && (
-          <View style={styles.sectionContent}>
-            <Text style={styles.sectionTitle}>Certifications</Text>
-            {certifications.slice(0, 8).map((cert: any, index: number) => (
-              <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.text}>
-                  {sanitizeText(`${cert?.title || ''} by ${cert?.issuer || ''} (${cert?.year || ''})`)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </Page>
-    </Document>
+    <PdfTemplateRouter 
+      data={data} 
+      template={data.template || 'TemplateOne'} 
+      colorPalette={data.colorPalette || ['#EBFDFF', '#A1FAFD', '#ACEAFE', '#008899', '#4A5568']} 
+    />
   );
 };
 
@@ -199,6 +28,22 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       
       // Prepare resume data with comprehensive fallbacks
       const fullResumeData = {
+        template: resumeData?.template || 'TemplateOne', // Pass template
+        colorPalette: resumeData?.colorPalette || ['#EBFDFF', '#A1FAFD', '#ACEAFE', '#008899', '#4A5568'], // Pass color palette
+        profileInfo: {
+          profilePictureUrl: resumeData?.profileInfo?.profilePictureUrl || '',
+          fullName: resumeData?.profileInfo?.fullName || resumeData?.personalInfo?.fullName || 'John Doe',
+          designation: resumeData?.profileInfo?.designation || resumeData?.personalInfo?.designation || 'Professional',
+          summary: resumeData?.profileInfo?.summary || resumeData?.professionalSummary || 'Experienced professional with demonstrated expertise.',
+        },
+        contactInfo: {
+          email: resumeData?.contactInfo?.email || resumeData?.profileInfo?.email || resumeData?.personalInfo?.email || 'email@example.com',
+          phone: resumeData?.contactInfo?.phone || resumeData?.profileInfo?.phone || resumeData?.personalInfo?.phone || '+1 (555) 123-4567',
+          location: resumeData?.contactInfo?.location || resumeData?.profileInfo?.location || resumeData?.personalInfo?.location || 'City, State',
+          linkedin: resumeData?.contactInfo?.linkedin || '',
+          github: resumeData?.contactInfo?.github || '',
+          website: resumeData?.contactInfo?.website || '',
+        },
         personalInfo: {
           fullName: resumeData?.profileInfo?.fullName || resumeData?.personalInfo?.fullName || 'John Doe',
           designation: resumeData?.profileInfo?.designation || resumeData?.personalInfo?.designation || 'Professional',
