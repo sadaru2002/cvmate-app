@@ -1,30 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Document, Page, Text, View, StyleSheet, pdf, Link } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
 import React from "react";
 
 export const maxDuration = 60;
 
-// Vercel-optimized version - no custom font loading
+// Register Roboto font using CDN-hosted WOFF2 files
+let fontsReady = false;
+(async () => {
+  try {
+    Font.register({
+      family: 'Roboto',
+      fonts: [
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
+          fontWeight: 'normal',
+        },
+        {
+          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
+          fontWeight: 'bold',
+        },
+      ],
+    });
+    console.log('Fonts registered successfully from CDN.');
+    fontsReady = true;
+  } catch (error) {
+    console.error('Error during initial font loading and registration from CDN:', error);
+    // Fallback to default fonts if custom font loading fails
+    Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
+    fontsReady = false;
+  }
+})();
 
 
-// Styles using only system fonts to prevent fontkit errors
+// Styles are now created dynamically based on font availability
 const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: "Helvetica", // Always use Helvetica for reliability
+    fontFamily: useSystemFonts ? "Helvetica" : "Roboto", // Conditional font family
     fontSize: 11,
     color: "#333333",
   },
   header: {
     marginBottom: 20,
-    borderBottom: "2pt solid #e5e7eb",
+    borderBottom: "2pt solid #e5e7eb", // Use 'pt' for points
     paddingBottom: 15,
   },
   name: {
     fontSize: 24,
-    fontFamily: "Helvetica-Bold",
+    fontWeight: "bold", // Use string 'bold'
     color: "#1f2937",
     marginBottom: 5,
   },
@@ -32,20 +57,19 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
     fontSize: 11,
     color: "#4b5563",
     marginBottom: 5,
-    fontFamily: "Helvetica",
   },
-  textBold: {
+  textBold: { // Added for explicit bold text
     fontSize: 11,
+    fontWeight: "bold",
     color: "#4b5563",
     marginBottom: 5,
-    fontFamily: "Helvetica-Bold",
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: "Helvetica-Bold",
+    fontWeight: "bold", // Use string 'bold'
     color: "#1f2937",
     marginBottom: 10,
-    borderBottom: "1pt solid #e5e7eb",
+    borderBottom: "1pt solid #e5e7eb", // Use 'pt' for points
     paddingBottom: 5,
   },
   sectionContent: {
@@ -55,12 +79,10 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
     fontSize: 11,
     color: "#4b5563",
     marginBottom: 3,
-    fontFamily: "Helvetica",
   },
   link: {
     color: "#2563eb",
     textDecoration: "underline",
-    fontFamily: "Helvetica",
   },
 });
 
@@ -70,17 +92,8 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
 
   const styles = createStyles(useSystemFonts); // Create styles dynamically
 
-  // Add text sanitization function to handle problematic characters
-  const sanitizeText = (text: any) => {
-    if (!text || typeof text !== 'string') return '';
-    return text
-      .replace(/[^\x20-\x7E\n\r\t]/g, '') // Keep only printable ASCII + whitespace
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim();
-  };
-
   const personalInfo = data?.personalInfo || {};
-  const professionalSummary = sanitizeText(data?.professionalSummary);
+  const professionalSummary = data?.professionalSummary;
   const workExperience = data?.workExperiences || [];
   const education = data?.education || [];
   // Ensure skills are filtered to only include valid names before mapping
@@ -93,18 +106,18 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
       <Page size="A4" style={styles.page}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.name}>{sanitizeText(personalInfo.fullName) || "Your Name"}</Text>
-          <Text style={styles.text}>{sanitizeText(personalInfo.designation) || "Professional Title"}</Text>
-          <Text style={styles.text}>Email: {sanitizeText(personalInfo.email) || "email@example.com"}</Text>
-          <Text style={styles.text}>Phone: {sanitizeText(personalInfo.phone) || "+1 234-567-8900"}</Text>
-          {personalInfo.location && <Text style={styles.text}>Location: {sanitizeText(personalInfo.location)}</Text>}
+          <Text style={styles.name}>{String(personalInfo.fullName ?? "Your Name")}</Text>
+          <Text style={styles.text}>{String(personalInfo.designation ?? "Professional Title")}</Text>
+          <Text style={styles.text}>Email: {String(personalInfo.email ?? "email@example.com")}</Text>
+          <Text style={styles.text}>Phone: {String(personalInfo.phone ?? "+1 234-567-8900")}</Text>
+          {personalInfo.location && <Text style={styles.text}>Location: {String(personalInfo.location ?? '')}</Text>}
         </View>
 
         {/* Professional Summary */}
         {professionalSummary && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Professional Summary</Text>
-            <Text style={styles.text}>{professionalSummary}</Text>
+            <Text style={styles.text}>{String(professionalSummary ?? '')}</Text>
           </View>
         )}
 
@@ -115,9 +128,9 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             {workExperience.map((job: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.textBold}>
-                  {`${sanitizeText(job.role) || ''}${job.company ? ` at ${sanitizeText(job.company)}` : ''} (${sanitizeText(job.startDate) || ''} - ${sanitizeText(job.endDate) || 'Present'})`}
+                  {String(`${job.role ?? ''}${job.company ? ` at ${job.company ?? ''}` : ''} (${job.startDate ?? ''} - ${job.endDate ?? 'Present'})`)}
                 </Text>
-                {job.description && <Text style={styles.text}>{sanitizeText(job.description)}</Text>}
+                {job.description && <Text style={styles.text}>{String(job.description ?? '')}</Text>}
               </View>
             ))}
           </View>
@@ -130,7 +143,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             {education.map((edu: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${sanitizeText(edu.degree) || ''} - ${sanitizeText(edu.institution) || ''} (${sanitizeText(edu.startDate) || ''} - ${sanitizeText(edu.endDate) || ''})`}
+                  {String(`${edu.degree ?? ''} - ${edu.institution ?? ''} (${edu.startDate ?? ''} - ${edu.endDate ?? ''})`)}
                 </Text>
               </View>
             ))}
@@ -141,7 +154,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
         {skills.length > 0 && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Technical Skills</Text>
-            <Text style={styles.text}>{skills.map((skill: string) => sanitizeText(skill)).filter(Boolean).join(", ")}</Text>
+            <Text style={styles.text}>{String(skills.join(", ") ?? '')}</Text>
           </View>
         )}
 
@@ -151,12 +164,10 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             <Text style={styles.sectionTitle}>Projects</Text>
             {projects.map((project: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.textBold}>
-                  {sanitizeText(project.title)}
-                </Text>
-                {project.description && <Text style={styles.text}>{sanitizeText(project.description)}</Text>}
-                {project.LiveDemo && <Link src={project.LiveDemo} style={styles.link}>Live Demo</Link>}
-                {project.github && <Link src={project.github} style={styles.link}>GitHub</Link>}
+                <Text style={styles.textBold}>{String(project.title ?? '')}</Text>
+                {project.description && <Text style={styles.text}>{String(project.description ?? '')}</Text>}
+                {project.LiveDemo && <Link src={String(project.LiveDemo ?? '')} style={styles.link}>Live Demo</Link>}
+                {project.github && <Link src={String(project.github ?? '')} style={styles.link}>GitHub</Link>}
               </View>
             ))}
           </View>
@@ -169,7 +180,7 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
             {certifications.map((cert: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${sanitizeText(cert.title) || ''} by ${sanitizeText(cert.issuer) || ''} (${sanitizeText(cert.year) || ''})`}
+                  {String(`${cert.title ?? ''} by ${cert.issuer ?? ''} (${cert.year ?? ''})`)}
                 </Text>
               </View>
             ))}
@@ -180,98 +191,16 @@ const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   );
 };
 
-// Alternative simple PDF generation for Vercel troubleshooting
-const createSimplePDF = async (resumeData: any): Promise<Buffer> => {
-  console.log('🔄 Creating simple PDF with minimal components');
-  
-  const SimpleDocument = () => (
-    <Document>
-      <Page size="A4" style={{
-        flexDirection: 'column',
-        backgroundColor: '#ffffff',
-        padding: 30,
-        fontFamily: 'Helvetica',
-        fontSize: 11,
-        color: '#333333',
-      }}>
-        <View style={{ marginBottom: 20, paddingBottom: 15 }}>
-          <Text style={{ fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 5 }}>
-            {resumeData?.profileInfo?.fullName || resumeData?.personalInfo?.fullName || 'Resume'}
-          </Text>
-          <Text style={{ fontSize: 14, color: '#4b5563', marginBottom: 5 }}>
-            {resumeData?.profileInfo?.designation || resumeData?.personalInfo?.designation || 'Professional'}
-          </Text>
-          <Text style={{ fontSize: 11, color: '#4b5563', marginBottom: 3 }}>
-            Email: {resumeData?.profileInfo?.email || resumeData?.personalInfo?.email || 'email@example.com'}
-          </Text>
-          <Text style={{ fontSize: 11, color: '#4b5563' }}>
-            Phone: {resumeData?.profileInfo?.phone || resumeData?.personalInfo?.phone || '+1234567890'}
-          </Text>
-        </View>
-        
-        {(resumeData?.profileInfo?.summary || resumeData?.professionalSummary) && (
-          <View style={{ marginBottom: 15 }}>
-            <Text style={{ fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 10 }}>
-              Professional Summary
-            </Text>
-            <Text style={{ fontSize: 11, color: '#4b5563', lineHeight: 1.4 }}>
-              {resumeData?.profileInfo?.summary || resumeData?.professionalSummary}
-            </Text>
-          </View>
-        )}
-        
-        {resumeData?.skills?.length > 0 && (
-          <View style={{ marginBottom: 15 }}>
-            <Text style={{ fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#1f2937', marginBottom: 10 }}>
-              Skills
-            </Text>
-            <Text style={{ fontSize: 11, color: '#4b5563' }}>
-              {resumeData.skills.map((s: any) => s?.name || s).filter(Boolean).join(', ')}
-            </Text>
-          </View>
-        )}
-      </Page>
-    </Document>
-  );
-
-  try {
-    const pdfInstance = pdf(<SimpleDocument />);
-    const result = await pdfInstance.toBuffer();
-    
-    // Handle the result the same way as the main function
-    let buffer: Buffer;
-    if (Buffer.isBuffer(result)) {
-      buffer = result;
-    } else if (result instanceof Uint8Array) {
-      buffer = Buffer.from(result);
-    } else if (result && typeof result === 'object') {
-      // Try to extract buffer from object
-      const data = (result as any).data || (result as any).buffer || result;
-      buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
-    } else {
-      buffer = Buffer.from(result as any);
-    }
-    
-    console.log(`✅ Simple PDF created: ${buffer.length} bytes`);
-    return buffer;
-    
-  } catch (error: any) {
-    console.error('❌ Simple PDF creation failed:', error);
-    throw error;
-  }
-};
-
 const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttempts = 2): Promise<Buffer> => {
   let lastError: Error | null = null;
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`PDF generation attempt ${attempt}/${maxAttempts}`);
-      console.log('Resume data keys:', Object.keys(resumeData || {}));
       
-      // Always use system fonts for Vercel reliability
-      const useSystemFonts = true;
-      console.log(`Using system fonts for Vercel compatibility`);
+      // Determine if system fonts should be used based on the fontsReady flag
+      const useSystemFonts = !fontsReady;
+      console.log(`Using system fonts: ${useSystemFonts} (font registration status: ${fontsReady})`);
 
       // Prepare resume data with comprehensive fallbacks
       const fullResumeData = {
@@ -287,7 +216,7 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
         education: Array.isArray(resumeData?.education) ? resumeData.education.slice(0, 3) : [],
         skills: { 
           technical: Array.isArray(resumeData?.skills) 
-            ? resumeData.skills.map((s: any) => s?.name || s).filter(Boolean).slice(0, 10)
+            ? resumeData.skills.map((s: any) => s?.name).filter(Boolean).slice(0, 10)
             : ['JavaScript', 'Python', 'React'] // Default skills
         },
         projects: Array.isArray(resumeData?.projects) ? resumeData.projects.slice(0, 4) : [],
@@ -302,14 +231,14 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       let pdfDocument;
       try {
         pdfDocument = createPDFDocument(fullResumeData, useSystemFonts);
-        console.log('PDF document created successfully');
+        console.log('PDF document React element created successfully');
       } catch (docError: any) {
-        console.error('Error creating PDF document:', docError);
-        throw new Error(`PDF document creation failed: ${docError.message}`);
+        console.error('Error creating PDF document React element:', docError);
+        throw new Error(`PDF document React element creation failed: ${docError.message}`);
       }
       
-      const pdfInstance = pdf(pdfDocument);
-      console.log('PDF instance created successfully');
+      const pdfInstance = pdf(pdfDocument); // This returns a PDFRenderer instance
+      console.log('PDFRenderer instance created successfully');
       
       // Reduced timeout for Vercel
       const pdfResult = await Promise.race([
@@ -395,116 +324,12 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       lastError = error;
       console.warn(`❌ PDF generation attempt ${attempt} failed:`, error.message);
       
-      // If it's a font-related error, note it for debugging
-      if (error.message?.includes('DataView') || 
-          error.message?.includes('fontkit') || 
-          error.message?.includes('Offset is outside') ||
-          error.message?.includes('Glyph')) {
-        console.warn('Font-related error detected - using system fonts only');
-      }
-      
-      // On final attempt, try with progressively simpler approaches
-      if (attempt === maxAttempts) {
-        try {
-          console.log('🔄 Final attempt with minimal configuration');
-          const minimalData = createMinimalResumeData(resumeData);
-          const minimalDoc = createPDFDocument(minimalData, true);
-          const minimalInstance = pdf(minimalDoc);
-          const minimalResult = await minimalInstance.toBuffer();
-          
-          // Handle buffer conversion for minimal fallback too
-          let minimalBuffer: Buffer;
-          if (Buffer.isBuffer(minimalResult)) {
-            minimalBuffer = minimalResult;
-          } else if (minimalResult instanceof Uint8Array) {
-            minimalBuffer = Buffer.from(minimalResult);
-          } else if (minimalResult && typeof minimalResult === 'object' && 'data' in minimalResult) {
-            const data = (minimalResult as any).data;
-            minimalBuffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
-          } else {
-            minimalBuffer = Buffer.from(minimalResult as any);
-          }
-          
-          if (!minimalBuffer || !Buffer.isBuffer(minimalBuffer) || minimalBuffer.length === 0) {
-            throw new Error('Even minimal PDF generation failed');
-          }
-          
-          console.log(`✅ Minimal PDF generated: ${minimalBuffer.length} bytes`);
-          return minimalBuffer;
-        } catch (minimalError) {
-          console.error('💥 Minimal PDF generation failed, trying simple PDF:', minimalError);
-          
-          // Last resort: try the simple PDF approach
-          try {
-            return await createSimplePDF(resumeData);
-          } catch (simpleError) {
-            console.error('💥 Simple PDF generation also failed:', simpleError);
-            throw lastError;
-          }
-        }
-      }
-      
       // Brief wait before retry
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
   
   throw lastError || new Error('PDF generation failed after all attempts');
-};
-
-const createMinimalResumeData = (resumeData: any) => {
-  // Create a minimal version of resume data to avoid any issues
-  // Sanitize all text fields to prevent special characters that might cause font issues
-  const sanitizeText = (text: string) => {
-    if (!text || typeof text !== 'string') return '';
-    return text
-      .replace(/[^\x20-\x7E]/g, '') // Remove non-ASCII characters
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim();
-  };
-
-  const minimal = {
-    personalInfo: {
-      fullName: sanitizeText(resumeData.profileInfo?.fullName || resumeData.personalInfo?.fullName) || 'John Doe',
-      designation: sanitizeText(resumeData.profileInfo?.designation || resumeData.personalInfo?.designation) || 'Professional',
-      email: sanitizeText(resumeData.profileInfo?.email || resumeData.personalInfo?.email) || 'john.doe@email.com',
-      phone: sanitizeText(resumeData.profileInfo?.phone || resumeData.personalInfo?.phone) || '+1234567890',
-      location: sanitizeText(resumeData.profileInfo?.location || resumeData.personalInfo?.location) || 'Location',
-    },
-    professionalSummary: sanitizeText(resumeData.profileInfo?.summary || resumeData.professionalSummary) || 'Experienced professional with a strong background in various fields.',
-    workExperiences: (resumeData.workExperiences || []).slice(0, 2).map((exp: any) => ({
-      role: sanitizeText(exp?.role) || 'Role',
-      company: sanitizeText(exp?.company) || 'Company',
-      startDate: sanitizeText(exp?.startDate) || '2020',
-      endDate: sanitizeText(exp?.endDate) || '2023',
-      description: sanitizeText(exp?.description) || 'Job description',
-    })),
-    education: (resumeData.education || []).slice(0, 1).map((edu: any) => ({
-      degree: sanitizeText(edu?.degree) || 'Bachelor Degree',
-      institution: sanitizeText(edu?.institution) || 'University',
-      startDate: sanitizeText(edu?.startDate) || '2016',
-      endDate: sanitizeText(edu?.endDate) || '2020',
-    })),
-    skills: { 
-      technical: (resumeData.skills?.map((s: any) => sanitizeText(s?.name || s)).filter(Boolean) || ['JavaScript', 'Python', 'React']).slice(0, 5)
-    },
-    projects: (resumeData.projects || []).slice(0, 2).map((proj: any) => ({
-      title: sanitizeText(proj?.title) || 'Project',
-      description: sanitizeText(proj?.description) || 'Project description',
-      LiveDemo: proj?.LiveDemo || '',
-      github: proj?.github || '',
-    })),
-    certifications: (resumeData.certifications || []).slice(0, 2).map((cert: any) => ({
-      title: sanitizeText(cert?.title) || 'Certification',
-      issuer: sanitizeText(cert?.issuer) || 'Issuer',
-      year: sanitizeText(cert?.year) || '2023',
-    })),
-    languages: [],
-    interests: [],
-  };
-
-  console.log('Created minimal resume data:', JSON.stringify(minimal, null, 2));
-  return minimal;
 };
 
 export async function POST(req: NextRequest) {
@@ -524,14 +349,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Log the structure of resumeData for debugging
-    console.log('API: Resume data structure:');
-    console.log('- profileInfo:', resumeData.profileInfo ? Object.keys(resumeData.profileInfo) : 'missing');
-    console.log('- personalInfo:', resumeData.personalInfo ? Object.keys(resumeData.personalInfo) : 'missing');
-    console.log('- workExperiences:', Array.isArray(resumeData.workExperiences) ? resumeData.workExperiences.length : 'not array');
-    console.log('- education:', Array.isArray(resumeData.education) ? resumeData.education.length : 'not array');
-    console.log('- skills:', Array.isArray(resumeData.skills) ? resumeData.skills.length : 'not array');
 
     // Generate PDF with retry logic
     console.log('API: Starting PDF generation...');
