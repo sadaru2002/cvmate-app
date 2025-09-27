@@ -1,9 +1,10 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image as PdfImage } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image as PdfImage, Link as PdfLink } from '@react-pdf/renderer';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import { cleanUrlForDisplay } from '@/lib/utils';
+import { getSvgIcon } from '../utils/getSvgIcon'; // Import the SVG icon helper
 
-const DEFAULT_THEME_TWO = ["#f8f9fa", "#e9ecef", "#dee2e6", "#007bff", "#343a40", "#343a40"];
+const DEFAULT_THEME_TWO = ["#f8f9fa", "#e9ecef", "#dee2e6", "#007bff", "#343a40"];
 
 const createStyles = (colors: string[]) => StyleSheet.create({
   page: {
@@ -20,10 +21,12 @@ const createStyles = (colors: string[]) => StyleSheet.create({
     gap: 32,
   },
   leftColumn: {
-    width: '70%', // 2.5fr equivalent
+    width: '65%', // 2.5fr equivalent
   },
   rightColumn: {
-    width: '30%', // 1fr equivalent
+    width: '35%', // 1fr equivalent
+    flexDirection: 'column',
+    alignItems: 'flex-start', // items-start
   },
   headerSection: {
     marginBottom: 24,
@@ -151,27 +154,44 @@ const createStyles = (colors: string[]) => StyleSheet.create({
     textDecoration: 'underline',
   },
   // Right column styles
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#CCCCCC', // border-gray-300
     alignSelf: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24, // mb-6
+  },
+  profileImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    objectFit: 'cover',
+  },
+  profileIconFallback: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontSize: 48, // text-5xl
+    color: colors[3] || DEFAULT_THEME_TWO[3],
   },
   skillContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    flexDirection: 'column', // space-y-1
+    gap: 4,
   },
   skillItem: {
-    backgroundColor: colors[1] || DEFAULT_THEME_TWO[1],
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    fontSize: 9,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: 11, // text-sm
     color: colors[4] || DEFAULT_THEME_TWO[4],
-    marginRight: 6,
-    marginBottom: 6,
   },
   languageItem: {
     flexDirection: 'row',
@@ -180,8 +200,8 @@ const createStyles = (colors: string[]) => StyleSheet.create({
     marginBottom: 8,
   },
   languageName: {
-    fontSize: 10,
-    color: '#333333',
+    fontSize: 11, // text-sm
+    color: colors[4] || DEFAULT_THEME_TWO[4],
   },
   proficiencyDots: {
     flexDirection: 'row',
@@ -197,14 +217,14 @@ const createStyles = (colors: string[]) => StyleSheet.create({
     backgroundColor: colors[3] || DEFAULT_THEME_TWO[3],
   },
   interestContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
+    flexDirection: 'column', // grid grid-cols-1 gap-y-2
+    gap: 8,
   },
   interestItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    fontSize: 11, // text-sm
+    color: '#333333', // text-gray-700
   },
   interestBullet: {
     width: 6,
@@ -214,20 +234,21 @@ const createStyles = (colors: string[]) => StyleSheet.create({
     marginRight: 6,
   },
   interestText: {
-    fontSize: 9,
+    fontSize: 11,
     color: '#333333',
   },
   certificationItem: {
     marginBottom: 8,
   },
   certificationTitle: {
-    fontSize: 10,
+    fontSize: 11, // text-sm
     fontFamily: 'Helvetica-Bold',
     color: colors[4] || DEFAULT_THEME_TWO[4],
   },
   certificationDetails: {
     fontSize: 9,
     color: '#666666',
+    marginTop: 4, // mt-1
   },
 });
 
@@ -237,7 +258,7 @@ interface PdfTemplateTwoProps {
 }
 
 const PdfTemplateTwo: React.FC<PdfTemplateTwoProps> = ({ data, colorPalette }) => {
-  const colors = colorPalette && colorPalette.length >= 6 ? colorPalette : DEFAULT_THEME_TWO;
+  const colors = colorPalette && colorPalette.length >= 5 ? colorPalette : DEFAULT_THEME_TWO;
   const styles = createStyles(colors);
 
   const formatYearMonth = (dateString?: string) => {
@@ -301,19 +322,25 @@ const PdfTemplateTwo: React.FC<PdfTemplateTwoProps> = ({ data, colorPalette }) =
                 {data.contactInfo.linkedin && (
                   <View style={styles.contactItem}>
                     <View style={styles.contactIcon} />
-                    <Text>{cleanUrlForDisplay(data.contactInfo.linkedin)}</Text>
+                    <PdfLink src={data.contactInfo.linkedin} style={styles.projectLink}>
+                      {cleanUrlForDisplay(data.contactInfo.linkedin)}
+                    </PdfLink>
                   </View>
                 )}
                 {data.contactInfo.github && (
                   <View style={styles.contactItem}>
                     <View style={styles.contactIcon} />
-                    <Text>{cleanUrlForDisplay(data.contactInfo.github)}</Text>
+                    <PdfLink src={data.contactInfo.github} style={styles.projectLink}>
+                      {cleanUrlForDisplay(data.contactInfo.github)}
+                    </PdfLink>
                   </View>
                 )}
                 {data.contactInfo.website && (
                   <View style={styles.contactItem}>
                     <View style={styles.contactIcon} />
-                    <Text>{cleanUrlForDisplay(data.contactInfo.website)}</Text>
+                    <PdfLink src={data.contactInfo.website} style={styles.projectLink}>
+                      {cleanUrlForDisplay(data.contactInfo.website)}
+                    </PdfLink>
                   </View>
                 )}
               </View>
@@ -374,14 +401,14 @@ const PdfTemplateTwo: React.FC<PdfTemplateTwoProps> = ({ data, colorPalette }) =
                     )}
                     <View style={styles.projectLinks}>
                       {project.github && (
-                        <Text style={styles.projectLink}>
+                        <PdfLink src={project.github} style={styles.projectLink}>
                           GitHub: {cleanUrlForDisplay(project.github)}
-                        </Text>
+                        </PdfLink>
                       )}
                       {project.LiveDemo && (
-                        <Text style={styles.projectLink}>
+                        <PdfLink src={project.LiveDemo} style={styles.projectLink}>
                           Demo: {cleanUrlForDisplay(project.LiveDemo)}
-                        </Text>
+                        </PdfLink>
                       )}
                     </View>
                   </View>
@@ -413,8 +440,16 @@ const PdfTemplateTwo: React.FC<PdfTemplateTwoProps> = ({ data, colorPalette }) =
           {/* Right Column */}
           <View style={styles.rightColumn}>
             {/* Profile Picture */}
-            {data.profileInfo.profilePictureUrl && (
-              <PdfImage src={data.profileInfo.profilePictureUrl} style={styles.profileImage} />
+            {data.profileInfo.profilePictureUrl ? (
+              <View style={styles.profileImageContainer}>
+                <PdfImage src={data.profileInfo.profilePictureUrl} style={styles.profileImage} />
+              </View>
+            ) : (
+              <View style={styles.profileImageContainer}>
+                <View style={styles.profileIconFallback}>
+                  {getSvgIcon('User', styles.profileIconFallback.color as string, 48)}
+                </View>
+              </View>
             )}
 
             {/* Skills */}
@@ -424,9 +459,12 @@ const PdfTemplateTwo: React.FC<PdfTemplateTwoProps> = ({ data, colorPalette }) =
                 <View style={styles.skillContainer}>
                   {data.skills.map((skill, index) => 
                     skill.name && (
-                      <Text key={index} style={styles.skillItem}>
-                        {skill.name}
-                      </Text>
+                      <View key={index} style={styles.skillItem}>
+                        <Text>{skill.name}</Text>
+                        <View style={styles.proficiencyDots}>
+                          {getProficiencyDots(skill.proficiency)}
+                        </View>
+                      </View>
                     )
                   )}
                 </View>

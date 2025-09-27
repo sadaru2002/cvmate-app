@@ -2,6 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image as PdfImage, Link as PdfLink } from '@react-pdf/renderer';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import { cleanUrlForDisplay } from '@/lib/utils';
+import { getSvgIcon } from '../utils/getSvgIcon'; // Import the SVG icon helper
 
 const DEFAULT_THEME = ["#EBFDFF", "#A1FAFD", "#ACEAFE", "#008899", "#4A5568"];
 
@@ -352,7 +353,7 @@ const PdfTemplateOne: React.FC<PdfTemplateOneProps> = ({ data, colorPalette }) =
                   <PdfImage src={data.profileInfo.profilePictureUrl} style={styles.profileImage} />
                 ) : (
                   <View style={styles.profileIconFallback}>
-                    <Text>JD</Text> {/* Fallback text */}
+                    {getSvgIcon('User', styles.profileIconFallback.color as string, 32)}
                   </View>
                 )}
               </View>
@@ -370,21 +371,25 @@ const PdfTemplateOne: React.FC<PdfTemplateOneProps> = ({ data, colorPalette }) =
                 <Text style={styles.sectionTitle}>CONTACT</Text>
                 {data.contactInfo.location && (
                   <View style={styles.contactItem}>
+                    {getSvgIcon('MapPin', '#6b7280', 12)}
                     <Text style={styles.contactText}>{data.contactInfo.location}</Text>
                   </View>
                 )}
                 {data.contactInfo.email && (
                   <View style={styles.contactItem}>
+                    {getSvgIcon('Mail', '#6b7280', 12)}
                     <Text style={styles.contactText}>{data.contactInfo.email}</Text>
                   </View>
                 )}
                 {data.contactInfo.phone && (
                   <View style={styles.contactItem}>
+                    {getSvgIcon('Phone', '#6b7280', 12)}
                     <Text style={styles.contactText}>{data.contactInfo.phone}</Text>
                   </View>
                 )}
                 {data.contactInfo.linkedin && (
                   <View style={styles.contactItem}>
+                    {getSvgIcon('Linkedin', '#6b7280', 12)}
                     <PdfLink src={data.contactInfo.linkedin} style={styles.contactLink}>
                       {cleanUrlForDisplay(data.contactInfo.linkedin)}
                     </PdfLink>
@@ -392,6 +397,7 @@ const PdfTemplateOne: React.FC<PdfTemplateOneProps> = ({ data, colorPalette }) =
                 )}
                 {data.contactInfo.github && (
                   <View style={styles.contactItem}>
+                    {getSvgIcon('Github', '#6b7280', 12)}
                     <PdfLink src={data.contactInfo.github} style={styles.contactLink}>
                       {cleanUrlForDisplay(data.contactInfo.github)}
                     </PdfLink>
@@ -399,6 +405,7 @@ const PdfTemplateOne: React.FC<PdfTemplateOneProps> = ({ data, colorPalette }) =
                 )}
                 {data.contactInfo.website && (
                   <View style={styles.contactItem}>
+                    {getSvgIcon('Globe', '#6b7280', 12)}
                     <PdfLink src={data.contactInfo.website} style={styles.contactLink}>
                       {cleanUrlForDisplay(data.contactInfo.website)}
                     </PdfLink>

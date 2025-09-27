@@ -2,6 +2,9 @@ import React from 'react';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
 import PdfTemplateOne from './templates/PdfTemplateOne';
 import PdfTemplateTwo from './templates/PdfTemplateTwo';
+import PdfTemplateThree from './templates/PdfTemplateThree'; // Import new template
+import PdfTemplateFour from './templates/PdfTemplateFour';   // Import new template
+import PdfTemplateFive from './templates/PdfTemplateFive';   // Import new template
 import PdfResume from './PdfResume'; // Fallback to the original template
 
 interface PdfTemplateRouterProps {
@@ -12,7 +15,6 @@ interface PdfTemplateRouterProps {
 
 const PdfTemplateRouter: React.FC<PdfTemplateRouterProps> = ({ data, template, colorPalette }) => {
   console.log('PdfTemplateRouter: Rendering template:', template, 'with colors:', colorPalette);
-  console.log('PdfTemplateRouter: Available templates: TemplateOne, TemplateTwo');
   
   // Normalize template name to handle case variations
   const normalizedTemplate = template?.trim();
@@ -25,17 +27,14 @@ const PdfTemplateRouter: React.FC<PdfTemplateRouterProps> = ({ data, template, c
       console.log('PdfTemplateRouter: Using PdfTemplateTwo');
       return <PdfTemplateTwo data={data} colorPalette={colorPalette} />;
     case 'TemplateThree':
-      // Fallback to PdfTemplateOne for unsupported templates
-      console.warn('TemplateThree not implemented for PDF, using PdfTemplateOne as fallback');
-      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
+      console.log('PdfTemplateRouter: Using PdfTemplateThree');
+      return <PdfTemplateThree data={data} colorPalette={colorPalette} />;
     case 'TemplateFour':
-      // Fallback to PdfTemplateOne for unsupported templates
-      console.warn('TemplateFour not implemented for PDF, using PdfTemplateOne as fallback');
-      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
+      console.log('PdfTemplateRouter: Using PdfTemplateFour');
+      return <PdfTemplateFour data={data} colorPalette={colorPalette} />;
     case 'TemplateFive':
-      // Since TemplateFive is the default, but we don't have a PDF version, use PdfTemplateOne
-      console.warn('TemplateFive not implemented for PDF, using PdfTemplateOne as fallback');
-      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
+      console.log('PdfTemplateRouter: Using PdfTemplateFive');
+      return <PdfTemplateFive data={data} colorPalette={colorPalette} />;
     default:
       console.warn('Unknown template:', template, 'falling back to PdfTemplateOne');
       return <PdfTemplateOne data={data} colorPalette={colorPalette} />;

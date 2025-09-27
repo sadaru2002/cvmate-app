@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { ResumeFormData } from '@/hooks/use-resume-builder';
+import { getSvgIcon } from './utils/getSvgIcon'; // Import the SVG icon helper
 
 interface PdfResumeProps {
   data: ResumeFormData;
@@ -157,7 +158,7 @@ const PdfResume: React.FC<PdfResumeProps> = ({ data }) => {
             <Text style={styles.sectionTitle}>Technical Skills</Text>
             <Text style={styles.text}>
               {data.skills.map(skill => 
-                sanitizeText(typeof skill === 'string' ? skill : skill?.name)
+                sanitizeText(skill?.name)
               ).filter(Boolean).join(', ')}
             </Text>
           </View>
