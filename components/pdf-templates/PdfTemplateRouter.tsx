@@ -19,17 +19,20 @@ const PdfTemplateRouter: React.FC<PdfTemplateRouterProps> = ({ data, template, c
     case 'TemplateTwo':
       return <PdfTemplateTwo data={data} colorPalette={colorPalette} />;
     case 'TemplateThree':
-      // TODO: Create PdfTemplateThree
-      return <PdfResume data={data} />;
+      // Fallback to PdfTemplateOne for unsupported templates
+      console.warn('TemplateThree not implemented for PDF, using PdfTemplateOne');
+      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     case 'TemplateFour':
-      // TODO: Create PdfTemplateFour
-      return <PdfResume data={data} />;
+      // Fallback to PdfTemplateOne for unsupported templates
+      console.warn('TemplateFour not implemented for PDF, using PdfTemplateOne');
+      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     case 'TemplateFive':
-      // TODO: Create PdfTemplateFive
+      // Fallback to PdfResume for TemplateFive
+      console.warn('TemplateFive not implemented for PDF, using fallback PdfResume');
       return <PdfResume data={data} />;
     default:
-      console.warn('Unknown template:', template, 'falling back to default');
-      return <PdfResume data={data} />;
+      console.warn('Unknown template:', template, 'falling back to PdfTemplateOne');
+      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
   }
 };
 
