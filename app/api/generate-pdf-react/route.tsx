@@ -69,8 +69,19 @@ const createPDFDocument = (data: any) => {
 
   const styles = createStyles(); // Create styles dynamically
 
+  // Add text sanitization to prevent issues with special characters
+  const sanitizeText = (text: any): string => {
+    if (text === null || text === undefined) return '';
+    const str = String(text);
+    // Remove or replace problematic characters that might cause PDF issues
+    return str
+      .replace(/[^\x20-\x7E\n\r\t]/g, '') // Keep only printable ASCII + whitespace
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  };
+
   const personalInfo = data?.personalInfo || {};
-  const professionalSummary = data?.professionalSummary;
+  const professionalSummary = sanitizeText(data?.professionalSummary);
   const workExperience = data?.workExperiences || [];
   const education = data?.education || [];
   const skills = data?.skills?.technical?.filter(Boolean) || [];
@@ -82,18 +93,18 @@ const createPDFDocument = (data: any) => {
       <Page size="A4" style={styles.page}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.name}>{String(personalInfo.fullName ?? "Your Name")}</Text>
-          <Text style={styles.text}>{String(personalInfo.designation ?? "Professional Title")}</Text>
-          <Text style={styles.text}>Email: {String(personalInfo.email ?? "email@example.com")}</Text>
-          <Text style={styles.text}>Phone: {String(personalInfo.phone ?? "+1 234-567-8900")}</Text>
-          {personalInfo.location && <Text style={styles.text}>Location: {String(personalInfo.location ?? '')}</Text>}
+          <Text style={styles.name}>{sanitizeText(personalInfo.fullName) || "Your Name"}</Text>
+          <Text style={styles.text}>{sanitizeText(personalInfo.designation) || "Professional Title"}</Text>
+          <Text style={styles.text}>Email: {sanitizeText(personalInfo.email) || "email@example.com"}</Text>
+          <Text style={styles.text}>Phone: {sanitizeText(personalInfo.phone) || "+1 234-567-8900"}</Text>
+          {personalInfo.location && <Text style={styles.text}>Location: {sanitizeText(personalInfo.location)}</Text>}
         </View>
 
         {/* Professional Summary */}
         {professionalSummary && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Professional Summary</Text>
-            <Text style={styles.text}>{String(professionalSummary ?? '')}</Text>
+            <Text style={styles.text}>{professionalSummary}</Text>
           </View>
         )}
 
@@ -104,9 +115,9 @@ const createPDFDocument = (data: any) => {
             {workExperience.map((job: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.textBold}>
-                  {String(`${job.role ?? ''}${job.company ? ` at ${job.company ?? ''}` : ''} (${job.startDate ?? ''} - ${job.endDate ?? 'Present'})`)}
+                  {`${sanitizeText(job.role) || ''}${job.company ? ` at ${sanitizeText(job.company)}` : ''} (${sanitizeText(job.startDate) || ''} - ${sanitizeText(job.endDate) || 'Present'})`}
                 </Text>
-                {job.description && <Text style={styles.text}>{String(job.description ?? '')}</Text>}
+                {job.description && <Text style={styles.text}>{sanitizeText(job.description)}</Text>}
               </View>
             ))}
           </View>
@@ -119,7 +130,7 @@ const createPDFDocument = (data: any) => {
             {education.map((edu: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {String(`${edu.degree ?? ''} - ${edu.institution ?? ''} (${edu.startDate ?? ''} - ${edu.endDate ?? ''})`)}
+                  {`${sanitizeText(edu.degree) || ''} - ${sanitizeText(edu.institution) || ''} (${sanitizeText(edu.startDate) || ''} - ${sanitizeText(edu.endDate) || ''})`}
                 </Text>
               </View>
             ))}
@@ -130,7 +141,7 @@ const createPDFDocument = (data: any) => {
         {skills.length > 0 && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Technical Skills</Text>
-            <Text style={styles.text}>{String(skills.join(", ") ?? '')}</Text>
+            <Text style={styles.text}>{skills.map(skill => sanitizeText(skill)).filter(Boolean).join(", ")}</Text>
           </View>
         )}
 
@@ -140,10 +151,10 @@ const createPDFDocument = (data: any) => {
             <Text style={styles.sectionTitle}>Projects</Text>
             {projects.map((project: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.textBold}>{String(project.title ?? '')}</Text>
-                {project.description && <Text style={styles.text}>{String(project.description ?? '')}</Text>}
-                {project.LiveDemo && <Link src={String(project.LiveDemo ?? '')} style={styles.link}>Live Demo</Link>}
-                {project.github && <Link src={String(project.github ?? '')} style={styles.link}>GitHub</Link>}
+                <Text style={styles.textBold}>{sanitizeText(project.title)}</Text>
+                {project.description && <Text style={styles.text}>{sanitizeText(project.description)}</Text>}
+                {project.LiveDemo && <Link src={sanitizeText(project.LiveDemo)} style={styles.link}>Live Demo</Link>}
+                {project.github && <Link src={sanitizeText(project.github)} style={styles.link}>GitHub</Link>}
               </View>
             ))}
           </View>
@@ -156,7 +167,7 @@ const createPDFDocument = (data: any) => {
             {certifications.map((cert: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {String(`${cert.title ?? ''} by ${cert.issuer ?? ''} (${cert.year ?? ''})`)}
+                  {`${sanitizeText(cert.title) || ''} by ${sanitizeText(cert.issuer) || ''} (${sanitizeText(cert.year) || ''})`}
                 </Text>
               </View>
             ))}
@@ -188,7 +199,7 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
         education: Array.isArray(resumeData?.education) ? resumeData.education.slice(0, 3) : [],
         skills: { 
           technical: Array.isArray(resumeData?.skills) 
-            ? resumeData.skills.map((s: any) => s?.name).filter(Boolean).slice(0, 10)
+            ? resumeData.skills.map((s: any) => typeof s === 'string' ? s : s?.name).filter(Boolean).slice(0, 10)
             : ['JavaScript', 'Python', 'React'] // Default skills
         },
         projects: Array.isArray(resumeData?.projects) ? resumeData.projects.slice(0, 4) : [],
@@ -203,8 +214,13 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       const pdfDocument = createPDFDocument(fullResumeData);
       console.log('PDF document React element created successfully');
       
-      // Get PDF buffer directly from the pdf() function
-      const pdfBuffer = await pdf(pdfDocument).toBuffer();
+      // Get PDF buffer directly from the pdf() function with timeout
+      const pdfBuffer = await Promise.race([
+        pdf(pdfDocument).toBuffer(),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('PDF generation timeout after 30 seconds')), 30000)
+        )
+      ]);
       console.log('PDF buffer generated successfully from pdf().toBuffer()');
 
       // Comprehensive buffer validation
@@ -236,6 +252,13 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
     } catch (error: any) {
       lastError = error;
       console.warn(`❌ PDF generation attempt ${attempt} failed:`, error.message);
+      
+      // If it's still a font or DataView error, log it specifically
+      if (error.message?.includes('DataView') || 
+          error.message?.includes('fontkit') || 
+          error.message?.includes('Offset is outside')) {
+        console.error('🔤 Font-related error persists despite using built-in fonts:', error.message);
+      }
       
       // Brief wait before retry
       await new Promise(resolve => setTimeout(resolve, 500));
