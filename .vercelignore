@@ -1,0 +1,9 @@
+node_modules/
+.env*
+.git/
+.next/
+.npmrc
+package-lock.json
+pnpm-lock.yaml
+*.log
+.DS_Store

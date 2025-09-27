@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Document, Page, Text, View, StyleSheet, pdf, Font, Link } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, pdf, Link } from "@react-pdf/renderer";
 import React from "react";
 
 export const maxDuration = 60;
@@ -67,26 +67,28 @@ const createPDFDocument = (data: any) => {
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
   console.log('createPDFDocument: Using built-in Helvetica fonts.');
 
-  const styles = createStyles(); // Create styles dynamically
+  const styles = createStyles();
 
-  // Add text sanitization to prevent issues with special characters
+  // Enhanced text sanitization to prevent any encoding issues
   const sanitizeText = (text: any): string => {
     if (text === null || text === undefined) return '';
     const str = String(text);
-    // Remove or replace problematic characters that might cause PDF issues
+    // More aggressive sanitization for PDF compatibility
     return str
-      .replace(/[^\x20-\x7E\n\r\t]/g, '') // Keep only printable ASCII + whitespace
+      .replace(/[^\x20-\x7E\n\r\t]/g, ' ') // Replace non-ASCII with spaces
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
       .replace(/\s+/g, ' ') // Normalize whitespace
-      .trim();
+      .trim()
+      .substring(0, 1000); // Limit length to prevent issues
   };
 
   const personalInfo = data?.personalInfo || {};
   const professionalSummary = sanitizeText(data?.professionalSummary);
-  const workExperience = data?.workExperiences || [];
-  const education = data?.education || [];
-  const skills = data?.skills?.technical?.filter(Boolean) || [];
-  const projects = data?.projects || [];
-  const certifications = data?.certifications || [];
+  const workExperience = Array.isArray(data?.workExperiences) ? data.workExperiences : [];
+  const education = Array.isArray(data?.education) ? data.education : [];
+  const skills = Array.isArray(data?.skills?.technical) ? data.skills.technical.filter(Boolean) : [];
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const certifications = Array.isArray(data?.certifications) ? data.certifications : [];
 
   return (
     <Document>
@@ -115,9 +117,11 @@ const createPDFDocument = (data: any) => {
             {workExperience.map((job: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.textBold}>
-                  {`${sanitizeText(job.role) || ''}${job.company ? ` at ${sanitizeText(job.company)}` : ''} (${sanitizeText(job.startDate) || ''} - ${sanitizeText(job.endDate) || 'Present'})`}
+                  {sanitizeText(`${job?.role || ''} ${job?.company ? `at ${job.company}` : ''} (${job?.startDate || ''} - ${job?.endDate || 'Present'})`)}
                 </Text>
-                {job.description && <Text style={styles.text}>{sanitizeText(job.description)}</Text>}
+                {job?.description && (
+                  <Text style={styles.text}>{sanitizeText(job.description)}</Text>
+                )}
               </View>
             ))}
           </View>
@@ -130,7 +134,7 @@ const createPDFDocument = (data: any) => {
             {education.map((edu: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${sanitizeText(edu.degree) || ''} - ${sanitizeText(edu.institution) || ''} (${sanitizeText(edu.startDate) || ''} - ${sanitizeText(edu.endDate) || ''})`}
+                  {sanitizeText(`${edu?.degree || ''} - ${edu?.institution || ''} (${edu?.startDate || ''} - ${edu?.endDate || ''})`)}
                 </Text>
               </View>
             ))}
@@ -141,7 +145,9 @@ const createPDFDocument = (data: any) => {
         {skills.length > 0 && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Technical Skills</Text>
-            <Text style={styles.text}>{skills.map(skill => sanitizeText(skill)).filter(Boolean).join(", ")}</Text>
+            <Text style={styles.text}>
+              {skills.map(skill => sanitizeText(skill)).filter(Boolean).slice(0, 15).join(", ")}
+            </Text>
           </View>
         )}
 
@@ -149,12 +155,18 @@ const createPDFDocument = (data: any) => {
         {projects.length > 0 && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Projects</Text>
-            {projects.map((project: any, index: number) => (
+            {projects.slice(0, 5).map((project: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
-                <Text style={styles.textBold}>{sanitizeText(project.title)}</Text>
-                {project.description && <Text style={styles.text}>{sanitizeText(project.description)}</Text>}
-                {project.LiveDemo && <Link src={sanitizeText(project.LiveDemo)} style={styles.link}>Live Demo</Link>}
-                {project.github && <Link src={sanitizeText(project.github)} style={styles.link}>GitHub</Link>}
+                <Text style={styles.textBold}>{sanitizeText(project?.title) || `Project ${index + 1}`}</Text>
+                {project?.description && (
+                  <Text style={styles.text}>{sanitizeText(project.description)}</Text>
+                )}
+                {project?.LiveDemo && (
+                  <Link src={sanitizeText(project.LiveDemo)} style={styles.link}>Live Demo</Link>
+                )}
+                {project?.github && (
+                  <Link src={sanitizeText(project.github)} style={styles.link}>GitHub</Link>
+                )}
               </View>
             ))}
           </View>
@@ -164,10 +176,10 @@ const createPDFDocument = (data: any) => {
         {certifications.length > 0 && (
           <View style={styles.sectionContent}>
             <Text style={styles.sectionTitle}>Certifications</Text>
-            {certifications.map((cert: any, index: number) => (
+            {certifications.slice(0, 8).map((cert: any, index: number) => (
               <View key={index} style={{ marginBottom: 10 }}>
                 <Text style={styles.text}>
-                  {`${sanitizeText(cert.title) || ''} by ${sanitizeText(cert.issuer) || ''} (${sanitizeText(cert.year) || ''})`}
+                  {sanitizeText(`${cert?.title || ''} by ${cert?.issuer || ''} (${cert?.year || ''})`)}
                 </Text>
               </View>
             ))}
