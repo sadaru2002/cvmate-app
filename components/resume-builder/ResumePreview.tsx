@@ -16,13 +16,14 @@ interface ResumePreviewProps {
   data: ResumeFormData; // Use the comprehensive ResumeFormData type
   className?: string;
   resumeElementId?: string; // New prop to pass the ID to the template
+  downloadMode?: boolean; // New prop to control rendering for download
 }
 
 // Define A4 dimensions in pixels (at 96 DPI)
 const A4_WIDTH_PX = 794; // Approximately 210mm
 const A4_HEIGHT_PX = 1123; // Approximately 297mm
 
-export function ResumePreview({ data, className, resumeElementId }: ResumePreviewProps) {
+export function ResumePreview({ data, className, resumeElementId, downloadMode = false }: ResumePreviewProps) {
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -97,9 +98,9 @@ export function ResumePreview({ data, className, resumeElementId }: ResumePrevie
         style={{
           width: `${A4_WIDTH_PX}px`,
           height: `${A4_HEIGHT_PX}px`,
-          transform: `scale(${scale})`, // Apply scale
+          transform: downloadMode ? 'none' : `scale(${scale})`, // Apply scale only in preview mode
           transformOrigin: "top left",
-          boxShadow: "0 0 10px rgba(0,0,0,0.1)", // Keep shadow for preview
+          boxShadow: downloadMode ? "none" : "0 0 10px rgba(0,0,0,0.1)", // Remove shadow in downloadMode
           overflow: "hidden",
         }}
       >

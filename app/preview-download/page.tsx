@@ -10,28 +10,25 @@ import { AuthGuard } from "@/components/AuthGuard" // Import AuthGuard
 import { toast } from "sonner" // Import toast for notifications
 import { ResumeFormData } from "@/hooks/use-resume-builder" // Import the comprehensive ResumeFormData type
 import { DownloadButtons } from "@/components/DownloadButtons" // Import the new DownloadButtons component
-import { useRouter, useSearchParams } from 'next/navigation'; // Import useRouter and useSearchParams
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { useResumeOptimization } from '@/hooks/useResumeOptimization'; // Import the hook
 
 export default function PreviewDownloadPage() {
   const [resumeData, setResumeData] = useState<ResumeFormData | null>(null);
   const router = useRouter(); // Initialize useRouter
-  const searchParams = useSearchParams(); // Initialize useSearchParams
   const { generateResumeStats, isGeneratingStats, resumeStats, statsError } = useResumeOptimization(); // Use the hook
-
-  // Removed isPdfMode check as it's no longer relevant
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedData = localStorage.getItem("resumeFormData");
       if (savedData) {
-        const dataToLoad = JSON.parse(savedData);
-        setResumeData(dataToLoad);
+        const parsedData = JSON.parse(savedData);
+        setResumeData(parsedData);
         // Generate stats when resumeData is loaded
-        generateResumeStats(dataToLoad);
+        generateResumeStats(parsedData);
       }
     }
-  }, []); // No longer depend on isPdfMode
+  }, []); // Empty dependency array to run once on mount
 
   // Define the ID for the resume template element
   const RESUME_ELEMENT_ID = "resume-template";
@@ -71,7 +68,6 @@ export default function PreviewDownloadPage() {
     <AuthGuard> {/* Wrap content with AuthGuard */}
       <div className="relative flex flex-col flex-1">
         <main className="relative z-10 max-w-7xl mx-auto flex-1 p-6 lg:p-12">
-          {/* Header */}
           <div className="text-center mb-12">
             <Check className="w-16 h-16 text-green-400 mx-auto mb-4" />
             <h1 className="text-4xl font-bold text-white lg:text-5xl mb-4 leading-tight glow-text">
@@ -91,8 +87,8 @@ export default function PreviewDownloadPage() {
               <GlassCard className="p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-white">Resume Preview</h2>
-                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-cyan-400" onClick={handleBackToEditor}>
-                    <ArrowLeft className="w-5 h-5 mr-2" /> Back to Editor
+                  <Button variant="ghost" size="icon" className="text-gray-400 hover:text-cyan-400" onClick={handleBackToEditor}>
+                    <ArrowLeft className="w-5 h-5" />
                   </Button>
                 </div>
                 {/* Pass the RESUME_ELEMENT_ID to ResumePreview so it can be applied to the template */}
