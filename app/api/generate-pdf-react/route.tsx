@@ -4,40 +4,16 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Temporarily disable custom font registration for testing with Helvetica
-let fontsReady = false; // Set to false as custom fonts are not being registered
-// (async () => {
-//   try {
-//     Font.register({
-//       family: 'Roboto',
-//       fonts: [
-//         {
-//           src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
-//           fontWeight: 'normal',
-//         },
-//         {
-//           src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
-//           fontWeight: 'bold',
-//         },
-//       ],
-//     });
-//     console.log('Fonts registered successfully from CDN.');
-//     fontsReady = true;
-//   } catch (error) {
-//     console.error('Error during initial font loading and registration from CDN:', error);
-//     Font.register({ family: "Roboto", src: "data:font/ttf;base64," });
-//     fontsReady = false;
-//   }
-// })();
+// Removed custom font registration. Using only built-in fonts for stability.
+// The 'fontsReady' flag is no longer needed.
 
-
-// Styles are now created dynamically based on font availability
-const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
+// Styles using only built-in Helvetica fonts
+const createStyles = () => StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: "Helvetica", // FORCING HELVETICA FOR TESTING
+    fontFamily: "Helvetica", // Always use Helvetica
     fontSize: 11,
     color: "#333333",
   },
@@ -48,24 +24,25 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   },
   name: {
     fontSize: 24,
-    fontWeight: "bold", // Use string 'bold'
+    fontFamily: "Helvetica-Bold", // Explicitly use Helvetica-Bold
     color: "#1f2937",
     marginBottom: 5,
   },
   text: {
     fontSize: 11,
+    fontFamily: "Helvetica", // Explicitly use Helvetica
     color: "#4b5563",
     marginBottom: 5,
   },
-  textBold: { // Added for explicit bold text
+  textBold: { // For explicit bold text
     fontSize: 11,
-    fontWeight: "bold",
+    fontFamily: "Helvetica-Bold", // Explicitly use Helvetica-Bold
     color: "#4b5563",
     marginBottom: 5,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "bold", // Use string 'bold'
+    fontFamily: "Helvetica-Bold", // Explicitly use Helvetica-Bold
     color: "#1f2937",
     marginBottom: 10,
     borderBottom: "1pt solid #e5e7eb", // Use 'pt' for points
@@ -76,26 +53,27 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
   },
   listItem: {
     fontSize: 11,
+    fontFamily: "Helvetica", // Explicitly use Helvetica
     color: "#4b5563",
     marginBottom: 3,
   },
   link: {
     color: "#2563eb",
     textDecoration: "underline",
+    fontFamily: "Helvetica", // Explicitly use Helvetica
   },
 });
 
-const createPDFDocument = (data: any, useSystemFonts: boolean) => {
+const createPDFDocument = (data: any) => { // Removed useSystemFonts parameter
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
-  console.log('createPDFDocument: Using system fonts (forced Helvetica for test):', useSystemFonts);
+  console.log('createPDFDocument: Using built-in Helvetica fonts.');
 
-  const styles = createStyles(useSystemFonts); // Create styles dynamically
+  const styles = createStyles(); // Create styles dynamically
 
   const personalInfo = data?.personalInfo || {};
   const professionalSummary = data?.professionalSummary;
   const workExperience = data?.workExperiences || [];
   const education = data?.education || [];
-  // Ensure skills are filtered to only include valid names before mapping
   const skills = data?.skills?.technical?.filter(Boolean) || [];
   const projects = data?.projects || [];
   const certifications = data?.certifications || [];
@@ -197,9 +175,9 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
     try {
       console.log(`PDF generation attempt ${attempt}/${maxAttempts}`);
       
-      // Force useSystemFonts to true for this diagnostic step
+      // Force useSystemFonts to true as custom fonts are removed
       const useSystemFonts = true; 
-      console.log(`Using system fonts: ${useSystemFonts} (font registration status: ${fontsReady})`);
+      console.log(`Using system fonts: ${useSystemFonts} (custom fonts disabled)`);
 
       // Prepare resume data with comprehensive fallbacks
       const fullResumeData = {
@@ -229,7 +207,7 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       // Create PDF with error boundary
       let pdfDocument;
       try {
-        pdfDocument = createPDFDocument(fullResumeData, useSystemFonts);
+        pdfDocument = createPDFDocument(fullResumeData); // No useSystemFonts parameter needed
         console.log('PDF document React element created successfully');
       } catch (docError: any) {
         console.error('Error creating PDF document React element:', docError);
