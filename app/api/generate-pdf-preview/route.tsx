@@ -21,19 +21,23 @@ const generatePDFFromURL = async (resumeData: any, baseUrl: string): Promise<Buf
     const page = await browser.newPage();
     
     // Set A4 page size
-    await page.setViewport({ width: 794, height: 1123 });
+    await page.setViewport({ width: 794, height: 1123 }); // A4 at 96 DPI
     
-    // Create a temporary preview URL with the resume data
-    // We'll use the same preview-download page but in PDF mode
-    const previewUrl = `${baseUrl}/api/render-template?template=${encodeURIComponent(resumeData?.template || 'TemplateOne')}&data=${encodeURIComponent(JSON.stringify(resumeData))}`;
+    // Set resumeData in local storage for the client-side page to pick up
+    await page.evaluateOnNewDocument((data) => {
+      localStorage.setItem('resumeFormDataForPdf', JSON.stringify(data));
+    }, resumeData);
+
+    // Navigate to the client-side preview-download page with a PDF mode flag
+    const previewUrl = `${baseUrl}/preview-download?pdfMode=true`;
     
-    console.log('📄 Navigating to preview URL...');
+    console.log('📄 Navigating to client-side preview URL:', previewUrl);
     await page.goto(previewUrl, { 
       waitUntil: 'networkidle0',
       timeout: 30000 
     });
     
-    // Wait for the template to render
+    // Wait for the resume template to be fully rendered
     await page.waitForSelector('#resume-template', { timeout: 10000 });
     
     // Generate PDF

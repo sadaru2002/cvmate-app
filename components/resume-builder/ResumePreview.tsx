@@ -40,7 +40,8 @@ export function ResumePreview({ data, className, resumeElementId, downloadMode =
   }, []);
 
   // Calculate scale to fit A4 width within the container for PREVIEW MODE
-  const scale = containerWidth > 0 ? containerWidth / A4_WIDTH_PX : 1;
+  // In downloadMode, scale should be 1 (no scaling)
+  const scale = downloadMode ? 1 : (containerWidth > 0 ? containerWidth / A4_WIDTH_PX : 1);
 
   const renderTemplate = () => {
     const templateProps = {
@@ -98,7 +99,7 @@ export function ResumePreview({ data, className, resumeElementId, downloadMode =
         style={{
           width: `${A4_WIDTH_PX}px`,
           height: `${A4_HEIGHT_PX}px`,
-          transform: downloadMode ? 'none' : `scale(${scale})`, // Apply scale only in preview mode
+          transform: `scale(${scale})`, // Apply scale based on downloadMode
           transformOrigin: "top left",
           boxShadow: downloadMode ? "none" : "0 0 10px rgba(0,0,0,0.1)", // Remove shadow in downloadMode
           overflow: "hidden",

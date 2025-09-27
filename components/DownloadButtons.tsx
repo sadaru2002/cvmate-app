@@ -22,10 +22,10 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
     setIsDownloading(true);
 
     try {
-      console.log('Starting React PDF download...');
+      console.log('Starting PDF download process...');
       
-      // Use only React PDF generation for consistent, high-quality results
-      await generatePdfReactBased(resumeData, filename);
+      // Use the new generate-pdf-preview API route
+      await generatePdfFromPreview(resumeData, filename);
 
     } catch (error: any) {
       console.error("PDF Download error:", error);
@@ -35,11 +35,10 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
     }
   };
 
-  const generatePdfReactBased = async (resumeData: ResumeFormData, filename: string) => {
+  const generatePdfFromPreview = async (resumeData: ResumeFormData, filename: string) => {
     try {
       toast.info('Generating pixel-perfect PDF from preview...');
       
-      // First try the new HTML-to-PDF method for exact preview matching
       const response = await fetch('/api/generate-pdf-preview', {
         method: 'POST',
         headers: {
@@ -52,9 +51,9 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       });
 
       if (!response.ok) {
-        console.warn('HTML-to-PDF failed, falling back to React PDF...');
+        console.warn('PDF generation from preview failed, falling back to React PDF...');
         
-        // Fallback to React PDF method
+        // Fallback to React PDF method if preview-based generation fails
         const fallbackResponse = await fetch('/api/generate-pdf-react', {
           method: 'POST',
           headers: {
