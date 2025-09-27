@@ -37,9 +37,10 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
 
   const generatePdfReactBased = async (resumeData: ResumeFormData, filename: string) => {
     try {
-      toast.info('Generating premium PDF with React PDF - perfect text selection and clickable links...');
+      toast.info('Generating pixel-perfect PDF from preview...');
       
-      const response = await fetch('/api/generate-pdf-react', {
+      // First try the new HTML-to-PDF method for exact preview matching
+      const response = await fetch('/api/generate-pdf-preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,8 +52,33 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
-        throw new Error(errorData.error || `React PDF generation failed: ${response.status}`);
+        console.warn('HTML-to-PDF failed, falling back to React PDF...');
+        
+        // Fallback to React PDF method
+        const fallbackResponse = await fetch('/api/generate-pdf-react', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            resumeData,
+            filename 
+          }),
+        });
+
+        if (!fallbackResponse.ok) {
+          const errorData = await fallbackResponse.json().catch(() => ({ error: 'Unknown server error' }));
+          throw new Error(errorData.error || `React PDF generation failed: ${fallbackResponse.status}`);
+        }
+
+        const blob = await fallbackResponse.blob();
+        if (blob.size === 0) {
+          throw new Error('Generated PDF is empty');
+        }
+
+        saveAs(blob, `${filename}.pdf`);
+        toast.success('Premium PDF generated! Perfect text selection, clickable links, and vector quality.');
+        return;
       }
 
       const blob = await response.blob();
@@ -61,10 +87,10 @@ export const DownloadButtons: React.FC<DownloadButtonsProps> = ({
       }
 
       saveAs(blob, `${filename}.pdf`);
-      toast.success('Premium PDF generated! Perfect text selection, clickable links, and vector quality.');
+      toast.success('🎉 Pixel-perfect PDF downloaded - exactly matches your preview!');
 
     } catch (error) {
-      console.error('React PDF generation failed:', error);
+      console.error('PDF generation failed:', error);
       throw error;
     }
   };
