@@ -12,24 +12,30 @@ interface PdfTemplateRouterProps {
 
 const PdfTemplateRouter: React.FC<PdfTemplateRouterProps> = ({ data, template, colorPalette }) => {
   console.log('PdfTemplateRouter: Rendering template:', template, 'with colors:', colorPalette);
-
-  switch (template) {
+  console.log('PdfTemplateRouter: Available templates: TemplateOne, TemplateTwo');
+  
+  // Normalize template name to handle case variations
+  const normalizedTemplate = template?.trim();
+  
+  switch (normalizedTemplate) {
     case 'TemplateOne':
+      console.log('PdfTemplateRouter: Using PdfTemplateOne');
       return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     case 'TemplateTwo':
+      console.log('PdfTemplateRouter: Using PdfTemplateTwo');
       return <PdfTemplateTwo data={data} colorPalette={colorPalette} />;
     case 'TemplateThree':
       // Fallback to PdfTemplateOne for unsupported templates
-      console.warn('TemplateThree not implemented for PDF, using PdfTemplateOne');
+      console.warn('TemplateThree not implemented for PDF, using PdfTemplateOne as fallback');
       return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     case 'TemplateFour':
       // Fallback to PdfTemplateOne for unsupported templates
-      console.warn('TemplateFour not implemented for PDF, using PdfTemplateOne');
+      console.warn('TemplateFour not implemented for PDF, using PdfTemplateOne as fallback');
       return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     case 'TemplateFive':
-      // Fallback to PdfResume for TemplateFive
-      console.warn('TemplateFive not implemented for PDF, using fallback PdfResume');
-      return <PdfResume data={data} />;
+      // Since TemplateFive is the default, but we don't have a PDF version, use PdfTemplateOne
+      console.warn('TemplateFive not implemented for PDF, using PdfTemplateOne as fallback');
+      return <PdfTemplateOne data={data} colorPalette={colorPalette} />;
     default:
       console.warn('Unknown template:', template, 'falling back to PdfTemplateOne');
       return <PdfTemplateOne data={data} colorPalette={colorPalette} />;

@@ -28,8 +28,8 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       
       // Prepare resume data with comprehensive fallbacks
       const fullResumeData = {
-        template: resumeData?.template || 'TemplateOne', // Pass template
-        colorPalette: resumeData?.colorPalette || ['#EBFDFF', '#A1FAFD', '#ACEAFE', '#008899', '#4A5568'], // Pass color palette
+        template: resumeData?.template || 'TemplateOne', // Default to TemplateOne for better layout
+        colorPalette: resumeData?.colorPalette || ['#EBFDFF', '#A1FAFD', '#ACEAFE', '#008899', '#4A5568'], // TemplateOne default colors
         profileInfo: {
           profilePictureUrl: resumeData?.profileInfo?.profilePictureUrl || '',
           fullName: resumeData?.profileInfo?.fullName || resumeData?.personalInfo?.fullName || 'John Doe',
