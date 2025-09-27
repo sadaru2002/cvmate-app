@@ -4,32 +4,31 @@ import React from "react";
 
 export const maxDuration = 60;
 
-// Register Roboto font using CDN-hosted WOFF2 files
-let fontsReady = false;
-(async () => {
-  try {
-    Font.register({
-      family: 'Roboto',
-      fonts: [
-        {
-          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
-          fontWeight: 'normal',
-        },
-        {
-          src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
-          fontWeight: 'bold',
-        },
-      ],
-    });
-    console.log('Fonts registered successfully from CDN.');
-    fontsReady = true;
-  } catch (error) {
-    console.error('Error during initial font loading and registration from CDN:', error);
-    // Fallback to default fonts if custom font loading fails
-    Font.register({ family: "Roboto", src: "data:font/ttf;base64," }); // Register an empty font to prevent errors
-    fontsReady = false;
-  }
-})();
+// Temporarily disable custom font registration for testing with Helvetica
+let fontsReady = false; // Set to false as custom fonts are not being registered
+// (async () => {
+//   try {
+//     Font.register({
+//       family: 'Roboto',
+//       fonts: [
+//         {
+//           src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
+//           fontWeight: 'normal',
+//         },
+//         {
+//           src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4AMP6lQ.woff2',
+//           fontWeight: 'bold',
+//         },
+//       ],
+//     });
+//     console.log('Fonts registered successfully from CDN.');
+//     fontsReady = true;
+//   } catch (error) {
+//     console.error('Error during initial font loading and registration from CDN:', error);
+//     Font.register({ family: "Roboto", src: "data:font/ttf;base64," });
+//     fontsReady = false;
+//   }
+// })();
 
 
 // Styles are now created dynamically based on font availability
@@ -38,7 +37,7 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
     flexDirection: "column",
     backgroundColor: "#ffffff",
     padding: 30,
-    fontFamily: useSystemFonts ? "Helvetica" : "Roboto", // Conditional font family
+    fontFamily: "Helvetica", // FORCING HELVETICA FOR TESTING
     fontSize: 11,
     color: "#333333",
   },
@@ -88,7 +87,7 @@ const createStyles = (useSystemFonts: boolean) => StyleSheet.create({
 
 const createPDFDocument = (data: any, useSystemFonts: boolean) => {
   console.log('createPDFDocument: Received data for PDF:', JSON.stringify(data, null, 2));
-  console.log('createPDFDocument: Using system fonts:', useSystemFonts);
+  console.log('createPDFDocument: Using system fonts (forced Helvetica for test):', useSystemFonts);
 
   const styles = createStyles(useSystemFonts); // Create styles dynamically
 
@@ -198,8 +197,8 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
     try {
       console.log(`PDF generation attempt ${attempt}/${maxAttempts}`);
       
-      // Determine if system fonts should be used based on the fontsReady flag
-      const useSystemFonts = !fontsReady;
+      // Force useSystemFonts to true for this diagnostic step
+      const useSystemFonts = true; 
       console.log(`Using system fonts: ${useSystemFonts} (font registration status: ${fontsReady})`);
 
       // Prepare resume data with comprehensive fallbacks
