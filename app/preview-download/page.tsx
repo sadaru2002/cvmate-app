@@ -19,37 +19,19 @@ export default function PreviewDownloadPage() {
   const searchParams = useSearchParams(); // Initialize useSearchParams
   const { generateResumeStats, isGeneratingStats, resumeStats, statsError } = useResumeOptimization(); // Use the hook
 
-  const isPdfMode = searchParams.get('pdfMode') === 'true'; // Check for pdfMode query param
+  // Removed isPdfMode check as it's no longer relevant
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      let dataToLoad: ResumeFormData | null = null;
-
-      if (isPdfMode) {
-        // In PDF mode, load data from 'resumeFormDataForPdf' set by Puppeteer
-        const savedDataForPdf = localStorage.getItem("resumeFormDataForPdf");
-        if (savedDataForPdf) {
-          dataToLoad = JSON.parse(savedDataForPdf);
-          // Clean up the temporary local storage item
-          localStorage.removeItem("resumeFormDataForPdf");
-        }
-      } else {
-        // In regular preview mode, load data from 'resumeFormData'
-        const savedData = localStorage.getItem("resumeFormData");
-        if (savedData) {
-          dataToLoad = JSON.parse(savedData);
-        }
-      }
-
-      if (dataToLoad) {
+      const savedData = localStorage.getItem("resumeFormData");
+      if (savedData) {
+        const dataToLoad = JSON.parse(savedData);
         setResumeData(dataToLoad);
-        // Generate stats when resumeData is loaded, but only in regular preview mode
-        if (!isPdfMode) {
-          generateResumeStats(dataToLoad);
-        }
+        // Generate stats when resumeData is loaded
+        generateResumeStats(dataToLoad);
       }
     }
-  }, [isPdfMode]); // Depend on isPdfMode
+  }, []); // No longer depend on isPdfMode
 
   // Define the ID for the resume template element
   const RESUME_ELEMENT_ID = "resume-template";
@@ -89,125 +71,119 @@ export default function PreviewDownloadPage() {
     <AuthGuard> {/* Wrap content with AuthGuard */}
       <div className="relative flex flex-col flex-1">
         <main className="relative z-10 max-w-7xl mx-auto flex-1 p-6 lg:p-12">
-          {/* Only show header and controls if not in PDF mode */}
-          {!isPdfMode && (
-            <div className="text-center mb-12">
-              <Check className="w-16 h-16 text-green-400 mx-auto mb-4" />
-              <h1 className="text-4xl font-bold text-white lg:text-5xl mb-4 leading-tight glow-text">
-                Your{" "}
-                <span className="text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
-                  Resume is Ready!
-                </span>
-              </h1>
-              <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                Download your professional, ATS-optimized resume in seconds and start landing those interviews.
-              </p>
-            </div>
-          )}
+          {/* Header */}
+          <div className="text-center mb-12">
+            <Check className="w-16 h-16 text-green-400 mx-auto mb-4" />
+            <h1 className="text-4xl font-bold text-white lg:text-5xl mb-4 leading-tight glow-text">
+              Your{" "}
+              <span className="text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text">
+                Resume is Ready!
+              </span>
+            </h1>
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+              Download your professional, ATS-optimized resume in seconds and start landing those interviews.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column: Resume Preview */}
             <div className="lg:col-span-1">
               <GlassCard className="p-6 h-full">
-                {!isPdfMode && (
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-white">Resume Preview</h2>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-cyan-400" onClick={handleBackToEditor}>
-                      <ArrowLeft className="w-5 h-5 mr-2" /> Back to Editor
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-white">Resume Preview</h2>
+                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-cyan-400" onClick={handleBackToEditor}>
+                    <ArrowLeft className="w-5 h-5 mr-2" /> Back to Editor
+                  </Button>
+                </div>
                 {/* Pass the RESUME_ELEMENT_ID to ResumePreview so it can be applied to the template */}
-                <ResumePreview data={resumeData} className="h-[calc(100%-60px)]" resumeElementId={RESUME_ELEMENT_ID} downloadMode={isPdfMode} />
+                <ResumePreview data={resumeData} className="h-[calc(100%-60px)]" resumeElementId={RESUME_ELEMENT_ID} />
               </GlassCard>
             </div>
 
             {/* Right Column: Download Options, Share, Next Steps, Stats */}
-            {!isPdfMode && (
-              <div className="lg:col-span-1 space-y-8">
-                {/* Download Options */}
-                <GlassCard className="p-6 space-y-4">
-                  <h2 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text glow-text">
-                    Download Options
-                  </h2>
-                  <DownloadButtons
-                    resumeData={resumeData}
-                    filename={filename}
-                  />
-                </GlassCard>
+            <div className="lg:col-span-1 space-y-8">
+              {/* Download Options */}
+              <GlassCard className="p-6 space-y-4">
+                <h2 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text glow-text">
+                  Download Options
+                </h2>
+                <DownloadButtons
+                  resumeData={resumeData}
+                  filename={filename}
+                />
+              </GlassCard>
 
-                {/* Next Steps */}
-                <GlassCard className="p-6 space-y-4">
-                  <h2 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text glow-text">
-                    Next Steps
-                  </h2>
-                  <p className="text-gray-300 text-sm">
-                    Want to optimize for a different job? Our AI can help you tailor your resume for specific positions.
-                  </p>
-                  <Button
-                    onClick={() => router.push(`/optimize?id=${resumeData._id}`)} // Pass resume ID to optimize page
-                    variant="gradient-glow"
-                    className="w-full"
-                  >
-                    <Brain className="w-5 h-5 mr-2" /> AI Optimization
-                  </Button>
-                  <Button
-                    onClick={handleBackToEditor}
-                    variant="outline"
-                    className="w-full text-white border-white/20 hover:bg-white/10"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" /> Back to Editor
-                  </Button>
-                </GlassCard>
+              {/* Next Steps */}
+              <GlassCard className="p-6 space-y-4">
+                <h2 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text glow-text">
+                  Next Steps
+                </h2>
+                <p className="text-gray-300 text-sm">
+                  Want to optimize for a different job? Our AI can help you tailor your resume for specific positions.
+                </p>
+                <Button
+                  onClick={() => router.push(`/optimize?id=${resumeData._id}`)} // Pass resume ID to optimize page
+                  variant="gradient-glow"
+                  className="w-full"
+                >
+                  <Brain className="w-5 h-5 mr-2" /> AI Optimization
+                </Button>
+                <Button
+                  onClick={handleBackToEditor}
+                  variant="outline"
+                  className="w-full text-white border-white/20 hover:bg-white/10"
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" /> Back to Editor
+                </Button>
+              </GlassCard>
 
-                {/* Resume Stats */}
-                <GlassCard className="p-6 space-y-4">
-                  <h2 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text glow-text">
-                    Resume Stats
-                  </h2>
-                  {isGeneratingStats ? (
-                    <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-                      <p className="ml-3 text-gray-300">Generating stats...</p>
+              {/* Resume Stats */}
+              <GlassCard className="p-6 space-y-4">
+                <h2 className="text-xl font-semibold text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text glow-text">
+                  Resume Stats
+                </h2>
+                {isGeneratingStats ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                    <p className="ml-3 text-gray-300">Generating stats...</p>
+                  </div>
+                ) : statsError ? (
+                  <div className="text-center text-red-400 py-4">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                    <p>{statsError}</p>
+                  </div>
+                ) : resumeStats ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-around text-center">
+                      <div>
+                        <p className="text-4xl font-bold text-cyan-400">{resumeStats.atsScore}</p>
+                        <p className="text-gray-300 text-sm">ATS Score</p>
+                      </div>
+                      <div>
+                        <p className="text-4xl font-bold text-purple-400">{resumeStats.keywordsCount}</p>
+                        <p className="text-gray-300 text-sm">Keywords Found</p>
+                      </div>
                     </div>
-                  ) : statsError ? (
-                    <div className="text-center text-red-400 py-4">
-                      <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                      <p>{statsError}</p>
-                    </div>
-                  ) : resumeStats ? (
-                    <div className="space-y-4">
-                      <div className="flex justify-around text-center">
-                        <div>
-                          <p className="text-4xl font-bold text-cyan-400">{resumeStats.atsScore}</p>
-                          <p className="text-gray-300 text-sm">ATS Score</p>
-                        </div>
-                        <div>
-                          <p className="text-4xl font-bold text-purple-400">{resumeStats.keywordsCount}</p>
-                          <p className="text-gray-300 text-sm">Keywords Found</p>
+                    {resumeStats.keywordsList && resumeStats.keywordsList.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-white mb-2">Top Keywords:</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {resumeStats.keywordsList.map((keyword, index) => (
+                            <span key={index} className="bg-purple-900/20 text-purple-300 px-2 py-1 rounded text-xs border border-purple-500/30">
+                              {keyword}
+                            </span>
+                          ))}
                         </div>
                       </div>
-                      {resumeStats.keywordsList && resumeStats.keywordsList.length > 0 && (
-                        <div>
-                          <h3 className="font-semibold text-white mb-2">Top Keywords:</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {resumeStats.keywordsList.map((keyword, index) => (
-                              <span key={index} className="bg-purple-900/20 text-purple-300 px-2 py-1 rounded text-xs border border-purple-500/30">
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-4">
-                      <p>Stats will appear here after generation.</p>
-                    </div>
-                  )}
-                </GlassCard>
-              </div>
-            )}
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    <p>Stats will appear here after generation.</p>
+                  </div>
+                )}
+              </GlassCard>
+            </div>
           </div>
         </main>
       </div>
