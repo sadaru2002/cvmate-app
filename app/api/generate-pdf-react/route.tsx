@@ -226,22 +226,50 @@ const generatePDFWithRetry = async (resumeData: any, filename: string, maxAttemp
       const pdfDocument = createPDFDocument(fullResumeData);
       console.log('PDF document React element created successfully');
       
-      // Get PDF buffer directly from the pdf() function with timeout
-      const pdfBuffer = await Promise.race([
-        pdf(pdfDocument).toBuffer(),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('PDF generation timeout after 30 seconds')), 30000)
-        )
-      ]);
-      console.log('PDF buffer generated successfully from pdf().toBuffer()');
+      // Get PDF buffer using async/await pattern for better error handling
+      let pdfBuffer: Buffer;
+      try {
+        const pdfInstance = pdf(pdfDocument);
+        
+        // Use toBlob() and then convert to buffer as a more reliable method
+        const blob = await Promise.race([
+          pdfInstance.toBlob(),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('PDF generation timeout after 30 seconds')), 30000)
+          )
+        ]);
+        
+        // Convert blob to buffer
+        const arrayBuffer = await blob.arrayBuffer();
+        pdfBuffer = Buffer.from(arrayBuffer);
+        console.log('PDF buffer generated successfully from toBlob()');
+        
+      } catch (blobError) {
+        console.warn('toBlob() failed, trying toBuffer():', blobError);
+        
+        // Fallback to toBuffer() method
+        const pdfInstance = pdf(pdfDocument);
+        const bufferResult = await Promise.race([
+          pdfInstance.toBuffer(),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('PDF generation timeout after 30 seconds')), 30000)
+          )
+        ]);
+        
+        // Handle different return types
+        if (Buffer.isBuffer(bufferResult)) {
+          pdfBuffer = bufferResult;
+        } else if (bufferResult instanceof Uint8Array) {
+          pdfBuffer = Buffer.from(bufferResult);
+        } else {
+          throw new Error(`Invalid buffer type: ${typeof bufferResult}, constructor: ${bufferResult?.constructor?.name}`);
+        }
+        console.log('PDF buffer generated successfully from toBuffer()');
+      }
 
       // Comprehensive buffer validation
       if (!pdfBuffer) {
         throw new Error('PDF buffer is null or undefined');
-      }
-      
-      if (!Buffer.isBuffer(pdfBuffer)) {
-        throw new Error(`Invalid buffer type: ${typeof pdfBuffer}, constructor: ${pdfBuffer?.constructor?.name}`);
       }
       
       if (pdfBuffer.length === 0) {
