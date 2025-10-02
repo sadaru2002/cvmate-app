@@ -1,0 +1,33 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/generate-pdf/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "app/api/generate-pdf-vector/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "app/api/generate-pdf-react/route.tsx": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "app/api/generate-pdf-preview/route.tsx": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "app/api/render-template/route.tsx": {
+      "maxDuration": 30,
+      "memory": 512
+    }
+  },
+  "regions": ["iad1"],
+  "env": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "SKIP_ENV_VALIDATION": "true"
+  }
+}
