@@ -71,6 +71,7 @@ export function ProfileInfoForm({ data, onUpdate, className, navigationButtons }
 
   const handleImageUpload = async (file: File): Promise<string | null> => {
     try {
+      console.log("🔄 Starting image upload...");
       const token = localStorage.getItem('token');
       // For Google users, token might not exist, but the backend verifyAuth will use the session.
       // So, we only add the token if it's present (for email/password users).
@@ -78,6 +79,7 @@ export function ProfileInfoForm({ data, onUpdate, className, navigationButtons }
       const formData = new FormData();
       formData.append('image', file);
 
+      console.log("📤 Making upload request...");
       const response = await fetch('/api/upload/image', {
         method: 'POST',
         headers: {
@@ -86,17 +88,21 @@ export function ProfileInfoForm({ data, onUpdate, className, navigationButtons }
         body: formData,
       });
 
+      console.log("📥 Upload response status:", response.status);
       const result = await response.json();
+      console.log("📥 Upload response data:", result);
 
       if (response.ok) {
+        console.log("✅ Upload successful, returning URL:", result.profileImageUrl);
         toast.success("Profile image uploaded successfully!");
         return result.profileImageUrl;
       } else {
+        console.log("❌ Upload failed:", result);
         toast.error(result.message || "Failed to upload image");
         return null;
       }
     } catch (error: any) {
-      console.error("Image upload error:", error);
+      console.error("💥 Image upload error:", error);
       toast.error("An unexpected error occurred during image upload");
       return null;
     }

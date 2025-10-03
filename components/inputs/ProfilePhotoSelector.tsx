@@ -67,12 +67,15 @@ export function ProfilePhotoSelector({
       // Convert cropped Data URL to File object
       const croppedFile = dataURLtoFile(croppedDataUrl, fileName);
       try {
+        console.log("📤 ProfilePhotoSelector: Calling upload handler...");
         const uploadedUrl = await onUpload(croppedFile);
+        console.log("📥 ProfilePhotoSelector: Upload handler returned:", uploadedUrl);
+        
         if (uploadedUrl) {
           console.log("📝 ProfilePhotoSelector: Upload successful, setting image to:", uploadedUrl);
           setImage(uploadedUrl);
           setPreview(uploadedUrl); // Ensure preview is the final uploaded URL
-          toast.success("Profile image uploaded successfully!");
+          // Note: Success toast is shown by the upload handler itself
           // Update NextAuth session if user is logged in via Google
           if (session?.user) {
             await updateSession({
@@ -83,12 +86,13 @@ export function ProfilePhotoSelector({
             });
           }
         } else {
-          toast.error("Failed to upload image.");
-          console.error("📝 ProfilePhotoSelector: Upload handler returned null/failed.");
+          console.log("📝 ProfilePhotoSelector: Upload handler returned null");
+          // Note: Error toast is shown by the upload handler itself
         }
       } catch (error) {
         console.error("📝 ProfilePhotoSelector: Error during onUpload with cropped image:", error);
-        toast.error("An error occurred during image upload.");
+        // Only show error toast if it's a frontend error, not an API error
+        toast.error("An error occurred during image processing");
       }
     } else {
       // If no upload handler, just update the image state with the cropped data URL
