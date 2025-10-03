@@ -13,11 +13,22 @@ cloudinary.config({
 });
 
 export async function POST(req: NextRequest) {
+  console.log('🔄 Image upload route called');
+  
   const authResult = await verifyAuth(req);
+  console.log('🔐 Auth result:', { 
+    hasError: !!authResult.error, 
+    hasUserId: !!authResult.userId,
+    error: authResult.error,
+    status: authResult.status 
+  });
+  
   if (authResult.error) {
+    console.log('❌ Authentication failed:', authResult.error);
     return NextResponse.json({ message: authResult.error }, { status: authResult.status });
   }
   const { userId } = authResult;
+  console.log('✅ Authentication successful, user ID:', userId);
 
   try {
     await connectDB();
@@ -54,14 +65,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Image uploaded successfully', profileImageUrl: (result as any).secure_url, user: {
-      id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      profileImageUrl: updatedUser.image
-    } }, { status: 200 });
+    console.log('✅ Image upload successful:', {
+      profileImageUrl: (result as any).secure_url,
+      userId: updatedUser._id
+    });
+    
+    return NextResponse.json({ 
+      message: 'Image uploaded successfully', 
+      profileImageUrl: (result as any).secure_url, 
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        profileImageUrl: updatedUser.image
+      } 
+    }, { status: 200 });
   } catch (error: any) {
-    console.error('Error uploading image:', error);
-    return NextResponse.json({ message: 'Error uploading image', error: error.message }, { status: 500 });
+    console.error('💥 Error uploading image:', error);
+    console.error('💥 Error stack:', error.stack);
+    return NextResponse.json({ 
+      message: 'Error uploading image', 
+      error: error.message 
+    }, { status: 500 });
   }
 }
