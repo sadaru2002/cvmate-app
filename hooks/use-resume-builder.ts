@@ -291,13 +291,14 @@ export function useResumeBuilder() {
       const payload = { [sectionKey]: newData };
       
       await api.patch(API_PATHS.RESUME.UPDATE(resumeData._id), payload);
-      toast.success("Resume updated successfully!");
+      // Don't show toast here - let the calling function handle user feedback
     } catch (error: any) {
       console.error(`Error updating ${String(sectionKey)}:`, error);
       setErrorMsg(error.message || `Failed to update ${String(sectionKey)}.`);
-      toast.error(error.message || `Failed to update ${String(sectionKey)}.`);
+      // Don't show toast here - let the calling function handle user feedback
       // Optionally revert local state if save fails
       // setResumeData(originalResumeData); 
+      throw error; // Re-throw the error so calling functions can handle it
     } finally {
       setIsLoading(false);
     }

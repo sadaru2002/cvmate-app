@@ -74,17 +74,31 @@ function OptimizePageContent() {
       return;
     }
 
-    switch (section) {
-      case 'summary':
-        // Use the new handleUpdateFieldAndSave to update and persist the summary
-        await handleUpdateFieldAndSave('profileInfo', {
-          ...resumeData.profileInfo,
-          summary: newText
-        });
-        break;
-      // Add other sections as needed
+    try {
+      console.log('🔄 Applying suggestion for section:', section);
+      console.log('📝 New text:', newText);
+      console.log('📊 Current resume data:', resumeData);
+
+      switch (section) {
+        case 'summary':
+          console.log('📝 Current profileInfo:', resumeData.profileInfo);
+          // Use the new handleUpdateFieldAndSave to update and persist the summary
+          await handleUpdateFieldAndSave('profileInfo', {
+            ...resumeData.profileInfo,
+            summary: newText
+          });
+          console.log('✅ Summary updated successfully');
+          break;
+        // Add other sections as needed
+        default:
+          toast.error(`Section "${section}" is not supported yet.`);
+          return;
+      }
+      toast.success('Applied to your resume!');
+    } catch (error: any) {
+      console.error('💥 Error applying suggestion:', error);
+      toast.error('Failed to apply suggestion: ' + (error.message || 'Unknown error'));
     }
-    toast.success('Applied to your resume!');
   };
 
   if (isResumeLoading) {
