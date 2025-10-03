@@ -12,18 +12,10 @@ interface DecodedToken {
 
 export async function verifyAuth(req: NextRequest) {
   console.log('--- verifyAuth START ---');
-  // 1. Try to get session from NextAuth (for Google OAuth users)
-  const session = await getServerSession(authOptions);
-
-  if (session?.user?.id) {
-    console.log('verifyAuth: NextAuth session found. User ID:', session.user.id);
-    console.log('--- verifyAuth END (NextAuth) ---');
-    return { userId: session.user.id as string, email: session.user.email as string };
-  }
-
-  // 2. If no NextAuth session, try to verify with local storage token (for email/password users)
+  
+  // 1. Try JWT token first (for email/password users)
   const token = req.headers.get('authorization')?.split(' ')[1];
-
+  
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
@@ -31,12 +23,31 @@ export async function verifyAuth(req: NextRequest) {
       console.log('--- verifyAuth END (JWT) ---');
       return { userId: decoded.userId, email: decoded.email };
     } catch (err) {
-      console.warn('verifyAuth: Invalid JWT token, authentication failed.');
+      console.warn('verifyAuth: Invalid JWT token, trying session...');
     }
+  }
+
+  // 2. Try NextAuth session (for Google OAuth users)
+  try {
+    const session = await getServerSession(authOptions);
+    console.log('verifyAuth: Session check result:', { 
+      hasSession: !!session, 
+      hasUser: !!session?.user, 
+      hasUserId: !!(session?.user as any)?.id 
+    });
+    
+    if (session?.user && (session.user as any).id) {
+      console.log('verifyAuth: NextAuth session found. User ID:', (session.user as any).id);
+      console.log('--- verifyAuth END (NextAuth) ---');
+      return { userId: (session.user as any).id as string, email: session.user.email as string };
+    }
+  } catch (sessionError) {
+    console.warn('verifyAuth: Session check failed:', sessionError);
   }
 
   // If neither method works
   console.log('verifyAuth: No valid authentication found.');
   console.log('--- verifyAuth END (Failed) ---');
+  return { error: 'Authentication required', status: 401 };
   return { error: 'Authentication required', status: 401 };
 }
