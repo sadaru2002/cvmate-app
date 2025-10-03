@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, Suspense } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/glass-card"
@@ -8,57 +8,30 @@ import { ResumePreview } from "@/components/resume-builder/ResumePreview"
 import { Check, Download, Copy, Share2, Brain, FileText, ArrowLeft, AlertCircle } from "lucide-react" // Added AlertCircle icon
 import { AuthGuard } from "@/components/AuthGuard" // Import AuthGuard
 import { toast } from "sonner" // Import toast for notifications
-import { useResumeBuilder } from "@/hooks/use-resume-builder" // Import useResumeBuilder hook
+import { ResumeFormData } from "@/hooks/use-resume-builder" // Import the comprehensive ResumeFormData type
 import { DownloadButtons } from "@/components/DownloadButtons" // Import the new DownloadButtons component
 import { useRouter } from 'next/navigation'; // Import useRouter
 import { useResumeOptimization } from '@/hooks/useResumeOptimization'; // Import the hook
 
-function PreviewDownloadPageContent() {
-  const { resumeData, isLoading: isResumeLoading, errorMsg } = useResumeBuilder(); // Use the hook to get latest data from DB
+export default function PreviewDownloadPage() {
+  const [resumeData, setResumeData] = useState<ResumeFormData | null>(null);
   const router = useRouter(); // Initialize useRouter
   const { generateResumeStats, isGeneratingStats, resumeStats, statsError } = useResumeOptimization(); // Use the hook
 
   useEffect(() => {
-    // Generate stats when resumeData is loaded and available
-    if (resumeData && resumeData._id) {
-      generateResumeStats(resumeData);
+    if (typeof window !== "undefined") {
+      const savedData = localStorage.getItem("resumeFormData");
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setResumeData(parsedData);
+        // Generate stats when resumeData is loaded
+        generateResumeStats(parsedData);
+      }
     }
-  }, [resumeData, generateResumeStats]); // Re-run when resumeData changes
+  }, []); // Empty dependency array to run once on mount
 
   // Define the ID for the resume template element
   const RESUME_ELEMENT_ID = "resume-template";
-
-  if (isResumeLoading) {
-    return (
-      <AuthGuard> {/* Wrap content with AuthGuard */}
-        <div className="flex flex-1 items-center justify-center p-6 lg:p-12">
-          <GlassCard className="relative z-10 p-8 text-center text-gray-300">
-            <h1 className="text-3xl font-bold text-white mb-4">Loading Resume...</h1>
-            <p>Fetching your latest resume data...</p>
-          </GlassCard>
-        </div>
-      </AuthGuard>
-    );
-  }
-
-  if (errorMsg) {
-    return (
-      <AuthGuard> {/* Wrap content with AuthGuard */}
-        <div className="flex flex-1 items-center justify-center p-6 lg:p-12">
-          <GlassCard className="relative z-10 p-8 text-center text-gray-300">
-            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-white mb-4">Error Loading Resume</h1>
-            <p className="mb-6">{errorMsg}</p>
-            <Link href="/resume-builder" passHref>
-              <Button variant="gradient-glow" className="mt-6">
-                Go to Resume Builder
-              </Button>
-            </Link>
-          </GlassCard>
-        </div>
-      </AuthGuard>
-    );
-  }
 
   if (!resumeData) {
     return (
@@ -211,22 +184,5 @@ function PreviewDownloadPageContent() {
         </main>
       </div>
     </AuthGuard>
-  );
-}
-
-export default function PreviewDownloadPage() {
-  return (
-    <Suspense fallback={
-      <AuthGuard>
-        <div className="flex flex-1 items-center justify-center p-6 lg:p-12">
-          <GlassCard className="relative z-10 p-8 text-center text-gray-300">
-            <h1 className="text-3xl font-bold text-white mb-4">Loading...</h1>
-            <p>Preparing your resume preview...</p>
-          </GlassCard>
-        </div>
-      </AuthGuard>
-    }>
-      <PreviewDownloadPageContent />
-    </Suspense>
   );
 }
