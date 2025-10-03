@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/form"
 import { ProfilePhotoSelector } from "@/components/inputs/ProfilePhotoSelector"
 import { Input } from "@/components/inputs/Input"
-import { toast } from "sonner"
 
 // Define the schema for profile info validation
 const profileInfoSchema = z.object({
@@ -94,16 +93,13 @@ export function ProfileInfoForm({ data, onUpdate, className, navigationButtons }
 
       if (response.ok) {
         console.log("✅ Upload successful, returning URL:", result.profileImageUrl);
-        toast.success("Profile image uploaded successfully!");
         return result.profileImageUrl;
       } else {
         console.log("❌ Upload failed:", result);
-        toast.error(result.message || "Failed to upload image");
         return null;
       }
     } catch (error: any) {
       console.error("💥 Image upload error:", error);
-      toast.error("An unexpected error occurred during image upload");
       return null;
     }
   };

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react"
 import { Camera, Crop } from "lucide-react" // Import Crop icon
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
 import { ImageCropperDialog } from "@/components/ImageCropperDialog"
 import { dataURLtoFile } from "@/lib/utils"
 import { useSession } from 'next-auth/react'; // Import useSession
@@ -92,12 +91,10 @@ export function ProfilePhotoSelector({
       } catch (error) {
         console.error("📝 ProfilePhotoSelector: Error during onUpload with cropped image:", error);
         // Only show error toast if it's a frontend error, not an API error
-        toast.error("An error occurred during image processing");
       }
     } else {
       // If no upload handler, just update the image state with the cropped data URL
       setImage(croppedDataUrl);
-      toast.success("Profile image updated locally!");
     }
     setImageToCrop(null); // Clear image from cropper state
     setCropperOpen(false); // Close cropper dialog
@@ -113,7 +110,7 @@ export function ProfilePhotoSelector({
       setImageToCrop(preview || image); // Use current preview or image for re-cropping
       setCropperOpen(true);
     } else {
-      toast.info("No image to re-crop. Please upload one first.");
+      console.log("📝 ProfilePhotoSelector: No image to re-crop. Please upload one first.");
     }
   };
 
